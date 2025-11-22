@@ -4,7 +4,7 @@ Extracts correct functions and test definitions.
 """
 
 from pathlib import Path
-from .file_loader import FileLoader
+
 
 class SolutionIngestion:
     """
@@ -158,4 +158,4 @@ def create_formula_answers_loop(column_name, row_number, number_of_question, wor
 
   return result
 
-formula_answer, value_answer = create_answer_key(assignment2_excel_answer_key_path, 'B', 5, 10, "Sheet1")
+# formula_answer, value_answer = create_answer_key(assignment2_excel_answer_key_path, 'B', 5, 10, "Sheet1")

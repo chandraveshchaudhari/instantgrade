@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from evaluator.ingestion.solution_ingestion import SolutionIngestion
-from evaluator.ingestion.solution_loader import load_solution_notebook
 from evaluator.utils.path_utils import get_file_extension, list_files_paths
 from pathlib import Path
 from evaluator.ingestion.file_loader import (

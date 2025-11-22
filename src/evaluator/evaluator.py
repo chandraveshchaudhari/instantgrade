@@ -69,7 +69,7 @@ class Evaluator:
     # --- Sub-parts exposed for granular control -------------------------------
     def load(self) -> List[Path]:
         """Load and return list of submission file paths using ingestion service."""
-        return self.ingestion.IngestionService(self.solution_file_path, self.submission_folder_path)
+        return self.ingestion(self.solution_file_path, self.submission_folder_path)
 
     def execute_all(self, submissions: Iterable[Path]) -> List[Any]:
         """Execute all submissions against the instructor solution.

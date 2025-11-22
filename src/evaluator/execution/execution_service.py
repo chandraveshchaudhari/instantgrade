@@ -5,8 +5,7 @@ import nbformat
 from nbclient import NotebookClient
 
 from evaluator.comparison.comparison_service import ComparisonService
-from evaluator.execution.notebook_executor import NotebookExecutor, extract_namespace_from_notebook
-from evaluator.utils.time_utils import now_timestamp
+from evaluator.execution.notebook_executor import NotebookExecutor
 
 
 
