@@ -6,7 +6,9 @@ from pathlib import Path
 import pandas as pd
 import nbformat
 from openpyxl import load_workbook
-
+import nbformat
+import ast
+from pathlib import Path
 from nbformat import validate, ValidationError
 
 import nbformat
@@ -113,4 +115,78 @@ def load_csv(path):
 
 def load_raw_code(path):
     return Path(path).read_text(encoding="utf8")
+
+
+
+
+def generate_student_notebook(instructor_path: str | Path, output_path: str | Path):
+    """
+    Create a student version of an instructor Jupyter notebook by:
+      - Replacing all function bodies with 'pass'
+      - Removing assert statements
+      - Keeping Markdown cells and structure identical
+
+    Parameters
+    ----------
+    instructor_path : str | Path
+        Path to the instructor's notebook (.ipynb)
+    output_path : str | Path
+        Destination path for the student version (.ipynb)
+    """
+    instructor_path = Path(instructor_path)
+    output_path = Path(output_path)
+
+    if not instructor_path.exists():
+        raise FileNotFoundError(f"Notebook not found: {instructor_path}")
+
+    nb = nbformat.read(instructor_path, as_version=4)
+    new_cells = []
+
+    for cell in nb.cells:
+        if cell.cell_type == "code":
+            try:
+                tree = ast.parse(cell.source)
+                new_body = []
+                for node in tree.body:
+                    # Remove assertion statements
+                    if isinstance(node, ast.Assert):
+                        continue
+
+                    # Replace function bodies with "pass"
+                    elif isinstance(node, ast.FunctionDef):
+                        node.body = [ast.Pass()]
+                        new_body.append(node)
+
+                    # Keep top-level assignments and imports as-is
+                    elif isinstance(node, (ast.Import, ast.ImportFrom, ast.Assign, ast.Expr)):
+                        new_body.append(node)
+
+                # Regenerate cell code
+                new_module = ast.Module(body=new_body, type_ignores=[])
+                new_source = ast.unparse(new_module)
+                cell.source = new_source.strip()
+
+            except Exception:
+                # If parsing fails, remove asserts by string filter
+                lines = []
+                for line in cell.source.split("\n"):
+                    if not line.strip().startswith("assert "):
+                        lines.append(line)
+                cell.source = "\n".join(lines)
+            new_cells.append(cell)
+
+        else:
+            # Keep markdown cells unchanged
+            new_cells.append(cell)
+
+    # Construct the new notebook
+    new_nb = nbformat.v4.new_notebook()
+    new_nb.cells = new_cells
+    new_nb.metadata = nb.metadata
+
+    # Write to file
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    nbformat.write(new_nb, output_path)
+    print(f"✅ Student notebook generated at: {output_path}")
+
 
