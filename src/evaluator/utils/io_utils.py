@@ -195,3 +195,30 @@ def generate_student_notebook(instructor_path: str | Path, output_path: str | Pa
     output_path.parent.mkdir(parents=True, exist_ok=True)
     nbformat.write(new_nb, output_path)
     print(f"✅ Student notebook generated at: {output_path}")
+
+
+def remove_notebook_with_line(directory: str | Path, line: str):
+    """
+    Remove all Jupyter notebook files in the specified directory that contain a specific line of code.
+
+    Parameters
+    ----------
+    directory : str | Path
+        The directory to search for Jupyter notebook files.
+    line : str
+        The line of code to search for within the notebooks.
+    """
+    directory = Path(directory)
+    if not directory.is_dir():
+        raise ValueError(f"The specified path is not a directory: {directory}")
+
+    for notebook_path in directory.glob("*.ipynb"):
+        try:
+            nb = nbformat.read(notebook_path, as_version=4)
+            for cell in nb.cells:
+                if cell.cell_type == "code" and line in cell.source:
+                    notebook_path.unlink()  # Delete the notebook file
+                    print(f"Deleted notebook: {notebook_path}")
+                    break  # No need to check further cells
+        except Exception as e:
+            print(f"Error processing {notebook_path}: {e}")
