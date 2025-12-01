@@ -1,0 +1,10 @@
+# GitHub Environments Configuration
+# This file documents the environments used in GitHub Actions workflows
+
+environments:
+  - name: github-pages
+    description: GitHub Pages deployment environment
+    url: https://chandraveshchaudhari.github.io/instantgrade/
+    protection_rules:
+      - type: branch_policy
+        branches: [master]
