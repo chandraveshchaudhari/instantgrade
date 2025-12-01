@@ -13,7 +13,7 @@ This project uses GitHub Actions to automatically publish to PyPI.
    - Fill in:
      - **PyPI Project Name:** `instantgrade`
      - **Owner:** `chandraveshchaudhari`
-     - **Repository name:** `evaluator`
+     - **Repository name:** `instantgrade`
      - **Workflow name:** `publish-on-tag.yml`
      - **Environment name:** `pypi` (optional)
 

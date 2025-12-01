@@ -58,7 +58,7 @@ This is the modern, more secure approach that doesn't require managing API token
 3. **Fill in the trusted publishing form:**
    - PyPI Project Name: `instantgrade`
    - Owner: `chandraveshchaudhari`
-   - Repository name: `evaluator`
+   - Repository name: `instantgrade`
    - Workflow name: `publish-on-tag.yml` (or whichever workflow you're using)
    - Environment name: `pypi` (optional, but recommended)
 
