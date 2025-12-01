@@ -18,6 +18,7 @@ from instantgrade.reporting.reporting_service import ReportingService
 
 import json
 
+
 class Evaluator:
     def __init__(
         self,
@@ -60,9 +61,9 @@ class Evaluator:
     # --- Sub-parts exposed for granular control -------------------------------
     def load(self) -> List[Path]:
         """Load and return list of submission file paths using ingestion service."""
-         
+
         return IngestionService(self.solution_file_path, self.submission_folder_path)
-    
+
     def execute_all(self, submissions: Iterable[Path]) -> List[Any]:
         """Execute all submissions against the instructor solution.
 
@@ -128,4 +129,3 @@ class Evaluator:
             setattr(self.comparison, "debug", enabled)
         if hasattr(self.reporting, "debug"):
             setattr(self.reporting, "debug", enabled)
-

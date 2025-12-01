@@ -68,8 +68,6 @@ class SolutionIngestion:
                         "tests": assert_lines,
                     }
 
-
-
                 i += 3
                 continue
 
@@ -89,12 +87,7 @@ class SolutionIngestion:
 
             i += 1
 
-        
-        return {
-            "type": "notebook",
-            "metadata": metadata,
-            "questions": questions
-        }
+        return {"type": "notebook", "metadata": metadata, "questions": questions}
 
     # --- Helper ---
     def _extract_function_name(self, code: str) -> str | None:
@@ -107,4 +100,3 @@ class SolutionIngestion:
         except Exception:
             pass
         return None
-

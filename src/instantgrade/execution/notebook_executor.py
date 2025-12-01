@@ -3,6 +3,7 @@ from nbclient import NotebookClient
 from pathlib import Path
 import traceback
 
+
 class NotebookExecutor:
     """
     Executes a Jupyter notebook in a sandboxed environment
@@ -35,7 +36,9 @@ class NotebookExecutor:
 
         # --- 2. Execute notebook with nbclient ---
         try:
-            client = NotebookClient(nb, timeout=self.timeout, allow_errors=True, kernel_name="python3")
+            client = NotebookClient(
+                nb, timeout=self.timeout, allow_errors=True, kernel_name="python3"
+            )
             executed_nb = client.execute()
         except Exception as e:
             tb_text = traceback.format_exc()

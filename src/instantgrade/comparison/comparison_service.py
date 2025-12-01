@@ -39,13 +39,15 @@ class ComparisonService:
                 exec(context_code, student_namespace)
             except Exception:
                 tb = traceback.format_exc()
-                results.append({
-                    "question": question_name or "unknown",
-                    "assertion": "[context setup]",
-                    "status": "failed",
-                    "error": tb,
-                    "score": 0,
-                })
+                results.append(
+                    {
+                        "question": question_name or "unknown",
+                        "assertion": "[context setup]",
+                        "status": "failed",
+                        "error": tb,
+                        "score": 0,
+                    }
+                )
                 # If setup fails, we cannot reliably run assertions
                 return results
 
@@ -53,21 +55,25 @@ class ComparisonService:
         for code in assertions:
             try:
                 exec(code, student_namespace)
-                results.append({
-                    "question": question_name or "unknown",
-                    "assertion": code,
-                    "status": "passed",
-                    "error": None,
-                    "score": 1,
-                })
+                results.append(
+                    {
+                        "question": question_name or "unknown",
+                        "assertion": code,
+                        "status": "passed",
+                        "error": None,
+                        "score": 1,
+                    }
+                )
             except Exception:
                 tb = traceback.format_exc()
-                results.append({
-                    "question": question_name or "unknown",
-                    "assertion": code,
-                    "status": "failed",
-                    "error": tb,
-                    "score": 0,
-                })
+                results.append(
+                    {
+                        "question": question_name or "unknown",
+                        "assertion": code,
+                        "status": "failed",
+                        "error": tb,
+                        "score": 0,
+                    }
+                )
 
         return results

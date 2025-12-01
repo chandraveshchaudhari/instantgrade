@@ -10,7 +10,12 @@ class ReportingService:
     Uses instructor solution data for total marks (assert count per question).
     """
 
-    def __init__(self, executed_results: list[dict] | None = None, solution: dict | None = None, debug: bool = False):
+    def __init__(
+        self,
+        executed_results: list[dict] | None = None,
+        solution: dict | None = None,
+        debug: bool = False,
+    ):
         self.debug = debug
         self.solution = solution or {}
         self.df: pd.DataFrame | None = self.dataframe(executed_results)
@@ -96,7 +101,8 @@ class ReportingService:
         grouped = self.df.groupby(["file", "student", "roll_number"])
         html_out = StringIO()
 
-        html_out.write("""
+        html_out.write(
+            """
         <html><head><meta charset="UTF-8"><title>Evaluator Report</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
@@ -212,7 +218,8 @@ class ReportingService:
         <label for="studentSelect">Student:</label>
         <select id="studentSelect" onchange="filterReports()">
             <option value="">-- All Students --</option>
-        """)
+        """
+        )
 
         # --- Student summaries per file ---
         summary = (
@@ -221,13 +228,17 @@ class ReportingService:
             .reset_index()
         )
         summary["percentage"] = (summary["total_score"] / summary["max_score"] * 100).fillna(0)
-        summary = summary.sort_values(by=["total_score", "percentage"], ascending=False).reset_index(drop=True)
+        summary = summary.sort_values(
+            by=["total_score", "percentage"], ascending=False
+        ).reset_index(drop=True)
 
         for _, row in summary.iterrows():
             student = row["student"]
             roll = row["roll_number"]
             sid = f"{student}_{roll}".replace(" ", "_")
-            html_out.write(f"<option value='{sid}'>{html_lib.escape(student)} ({html_lib.escape(str(roll))})</option>")
+            html_out.write(
+                f"<option value='{sid}'>{html_lib.escape(student)} ({html_lib.escape(str(roll))})</option>"
+            )
 
         html_out.write("</select><hr><div id='reportContainer'>")
 
@@ -236,22 +247,38 @@ class ReportingService:
             sid = f"{student}_{roll_number}".replace(" ", "_")
             total_score = g["score"].sum()
             total_possible = g["max_score"].sum()
-            percentage = round((total_score / total_possible) * 100, 2) if total_possible > 0 else 0.0
+            percentage = (
+                round((total_score / total_possible) * 100, 2) if total_possible > 0 else 0.0
+            )
 
             html_out.write(
                 f'<div class="student-block" id="{sid}" data-name="{student}" data-roll="{roll_number}" data-total="{total_score}">'
             )
-            html_out.write(f"<h3>{html_lib.escape(student)} — {html_lib.escape(str(roll_number))}</h3>")
+            html_out.write(
+                f"<h3>{html_lib.escape(student)} — {html_lib.escape(str(roll_number))}</h3>"
+            )
             html_out.write(f"<p><strong>File:</strong> {html_lib.escape(str(file))}</p>")
-            html_out.write(f"<p class='summary'>Total: {total_score}/{total_possible} ({percentage}%)</p>")
+            html_out.write(
+                f"<p class='summary'>Total: {total_score}/{total_possible} ({percentage}%)</p>"
+            )
 
             for q, subdf in g.groupby("question"):
-                html_out.write(f'<div class="question-block" data-qname="{html_lib.escape(str(q))}">')
-                html_out.write(f'<div class="question-header">Question: {html_lib.escape(str(q))}</div>')
-                desc = subdf["description"].iloc[0] if "description" in subdf.columns and pd.notna(subdf["description"].iloc[0]) else ""
+                html_out.write(
+                    f'<div class="question-block" data-qname="{html_lib.escape(str(q))}">'
+                )
+                html_out.write(
+                    f'<div class="question-header">Question: {html_lib.escape(str(q))}</div>'
+                )
+                desc = (
+                    subdf["description"].iloc[0]
+                    if "description" in subdf.columns and pd.notna(subdf["description"].iloc[0])
+                    else ""
+                )
                 if desc:
                     html_out.write(f'<div class="description">{html_lib.escape(desc)}</div>')
-                html_out.write("<table><thead><tr><th>Assertion</th><th>Status</th><th>Score</th><th>Error</th></tr></thead><tbody>")
+                html_out.write(
+                    "<table><thead><tr><th>Assertion</th><th>Status</th><th>Score</th><th>Error</th></tr></thead><tbody>"
+                )
                 for _, row in subdf.iterrows():
                     row_class = "passed" if row["status"] == "passed" else "failed"
                     html_out.write(
@@ -266,7 +293,8 @@ class ReportingService:
         html_out.write("</div>")  # reportContainer end
 
         # --- Summary Modal ---
-        html_out.write("""
+        html_out.write(
+            """
         <div id="overlay" onclick="closeSummary()"></div>
         <div id="summaryModal">
             <span class="close-btn" onclick="closeSummary()">✖</span>
@@ -281,7 +309,8 @@ class ReportingService:
                   <th>Percentage</th>
                 </tr></thead>
                 <tbody>
-        """)
+        """
+        )
         for _, row in summary.iterrows():
             html_out.write(
                 f"<tr><td>{html_lib.escape(row['student'])}</td>"
