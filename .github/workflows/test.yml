@@ -38,7 +38,15 @@ jobs:
       - name: Check package with twine
         run: twine check dist/*
 
-      - name: Test package installation
+      - name: Test package installation (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          pip install dist/*.whl
+          python -c "from instantgrade import Evaluator; print('✅ Package imported successfully!')"
+
+      - name: Test package installation (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
         run: |
           pip install dist/*.whl
           python -c "from instantgrade import Evaluator; print('✅ Package imported successfully!')"
