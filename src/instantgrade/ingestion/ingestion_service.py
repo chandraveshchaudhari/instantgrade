@@ -24,25 +24,25 @@ from instantgrade.utils.path_utils import is_notebook, is_excel
 
 class IngestionService:
     """Service for loading solutions, submissions, and validating files.
-    
+
     The IngestionService handles the loading of instructor solution files and
     student submission files. It supports multiple file formats and provides
     validation and metadata extraction capabilities.
-    
+
     Parameters
     ----------
     solution_file_path : str or Path, optional
         Path to the instructor's solution file.
     submission_folder_path : str or Path, optional
         Path to the folder containing student submissions.
-    
+
     Attributes
     ----------
     solution_file_path : str or Path
         Stored path to the solution file.
     submission_folder_path : str or Path
         Stored path to the submissions folder.
-    
+
     Examples
     --------
     >>> service = IngestionService(
@@ -61,21 +61,21 @@ class IngestionService:
 
     def list_submissions(self, submission_folder_path: str | Path = None) -> Iterable[Path]:
         """List all submission files in the given folder.
-        
+
         Scans the submission folder and returns paths to files that match
         the expected file type based on the solution file extension.
-        
+
         Parameters
         ----------
         submission_folder_path : str or Path, optional
             Path to the submissions folder. If None, uses the instance's
             submission_folder_path attribute.
-        
+
         Returns
         -------
         Iterable of Path
             Collection of Path objects for valid submission files.
-        
+
         Examples
         --------
         >>> service = IngestionService("solution.ipynb", "submissions/")
@@ -93,20 +93,20 @@ class IngestionService:
 
     def is_submission_file(self, path):
         """Check if a file is a valid submission.
-        
+
         Validates that the file extension matches the expected type based on
         the solution file.
-        
+
         Parameters
         ----------
         path : str or Path
             Path to the file to check.
-        
+
         Returns
         -------
         bool
             True if the file is a valid submission, False otherwise.
-        
+
         Examples
         --------
         >>> service = IngestionService("solution.ipynb", "submissions/")
@@ -119,15 +119,15 @@ class IngestionService:
 
     def load_submission(self, path):
         """Load a student submission file.
-        
+
         Loads and parses a student submission based on its file type. Supports
         Jupyter notebooks, Excel files, Python scripts, CSV, and JSON files.
-        
+
         Parameters
         ----------
         path : str or Path
             Path to the submission file to load.
-        
+
         Returns
         -------
         dict
@@ -138,14 +138,14 @@ class IngestionService:
             - For Python: 'code' (str)
             - For CSV: 'data' (pandas DataFrame)
             - For JSON: 'data' (dict)
-        
+
         Raises
         ------
         FileNotFoundError
             If the submission file does not exist.
         ValueError
             If the file type is not supported.
-        
+
         Examples
         --------
         >>> service = IngestionService()
@@ -177,29 +177,29 @@ class IngestionService:
 
     def load_solution(self, solution_path=None):
         """Load an instructor solution file.
-        
+
         Loads and parses an instructor's solution file based on its type.
         Supports Jupyter notebooks, Excel files, Python scripts, CSV, and JSON.
-        
+
         Parameters
         ----------
         solution_path : str or Path, optional
             Path to the solution file. If None, uses the instance's
             solution_file_path attribute.
-        
+
         Returns
         -------
         dict
             Dictionary containing solution metadata and loaded content. Structure
             varies by file type but includes 'type' and 'path' keys.
-        
+
         Raises
         ------
         FileNotFoundError
             If the solution file does not exist.
         ValueError
             If the file type is not supported.
-        
+
         Examples
         --------
         >>> service = IngestionService("solution.ipynb", "submissions/")

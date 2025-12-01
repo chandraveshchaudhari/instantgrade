@@ -12,19 +12,19 @@ from instantgrade import Evaluator
 @click.group()
 def cli():
     """InstantGrade CLI – Automated evaluation from the terminal.
-    
+
     This command-line interface provides tools for evaluating student
     submissions against instructor solutions. Supports Jupyter notebooks
     and Excel files.
-    
+
     Examples
     --------
     Evaluate submissions:
-    
+
         $ instantgrade evaluate -s solution.ipynb -f submissions/
-    
+
     Save reports to custom directory:
-    
+
         $ instantgrade evaluate -s solution.ipynb -f submissions/ -o reports/
     """
     pass
@@ -50,10 +50,10 @@ def cli():
 )
 def evaluate(solution, submissions, output):
     """Evaluate student submissions against a solution.
-    
+
     Runs the complete evaluation pipeline: loads the solution and submissions,
     executes them, compares outputs, and generates detailed reports.
-    
+
     Parameters
     ----------
     solution : str
@@ -62,15 +62,15 @@ def evaluate(solution, submissions, output):
         Path to folder containing student submission files.
     output : str, optional
         Path to directory for saving reports. Created if it doesn't exist.
-    
+
     Examples
     --------
     Basic evaluation:
-    
+
         $ instantgrade evaluate -s solution.ipynb -f submissions/
-    
+
     With custom output directory:
-    
+
         $ instantgrade evaluate -s sol.ipynb -f subs/ -o reports/
     """
 
