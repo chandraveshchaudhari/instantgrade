@@ -1,5 +1,8 @@
-"""
-IO utilities for reading, writing, and managing files and folders.
+"""IO utilities for reading, writing, and managing files and folders.
+
+This module provides utility functions for loading various file types,
+including Jupyter notebooks, Excel workbooks, JSON, CSV, and Python code files.
+It also includes notebook manipulation utilities.
 """
 
 import json
@@ -19,11 +22,38 @@ from nbformat import validate, ValidationError
 from uuid import uuid4
 
 
-def safe_load_notebook(path):
-    """
-    Safely read a Jupyter notebook and ensure each cell has an 'id' field.
-    Compatible with all nbformat versions (no normalize()).
-    Fixes structure in memory only — does not modify the file.
+def safe_load_notebook(path: Path) -> nbformat.NotebookNode:
+    """Safely load a Jupyter notebook and ensure cell IDs exist.
+    
+    Reads a Jupyter notebook and automatically adds unique IDs to cells
+    that are missing them. This prevents MissingIDFieldWarning in nbformat
+    versions >=5.1.4. The file is not modified on disk.
+    
+    Parameters
+    ----------
+    path : Path
+        Path to the Jupyter notebook file (.ipynb).
+    
+    Returns
+    -------
+    nbformat.NotebookNode
+        The loaded and validated notebook object with all cells having IDs.
+    
+    Raises
+    ------
+    RuntimeError
+        If the notebook cannot be loaded or validated.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> nb = safe_load_notebook(Path("notebook.ipynb"))
+    >>> print(f"Loaded {len(nb.cells)} cells")
+    
+    Notes
+    -----
+    This function modifies the notebook structure in memory only. It does not
+    write changes back to the file system.
     """
     try:
         nb = nbformat.read(path, as_version=4)
@@ -54,21 +84,33 @@ def safe_load_notebook(path):
 
 
 def normalize_notebook(path=None, inplace: bool = True) -> nbformat.NotebookNode:
-    """
-    Normalize a Jupyter notebook by ensuring every cell has a unique 'id' field.
+    """Normalize a Jupyter notebook by ensuring unique cell IDs.
+    
+    Ensures every cell in a Jupyter notebook has a unique 'id' field.
     This prevents MissingIDFieldWarning in nbformat >=5.1.4.
-
+    
     Parameters
     ----------
-    path : str | Path
-        Path to the notebook (.ipynb).
-    inplace : bool
-        If True, overwrite the notebook in place; else return the normalized object.
-
+    path : str or Path
+        Path to the notebook file (.ipynb).
+    inplace : bool, default=True
+        If True, overwrites the notebook file with normalized version.
+        If False, returns the normalized object without modifying the file.
+    
     Returns
     -------
-    nb : nbformat.NotebookNode
-        The normalized notebook object.
+    nbformat.NotebookNode
+        The normalized notebook object with validated cell IDs.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> nb = normalize_notebook("notebook.ipynb", inplace=False)
+    >>> print(f"Normalized {len(nb.cells)} cells")
+    
+    See Also
+    --------
+    safe_load_notebook : Load notebook without modifying the file.
     """
     path = Path(path)
     nb = nbformat.read(path, as_version=4)
@@ -85,24 +127,112 @@ def normalize_notebook(path=None, inplace: bool = True) -> nbformat.NotebookNode
     return normalized_nb
 
 
-def load_notebook(path):
+def load_notebook(path: Path) -> nbformat.NotebookNode:
+    """Load a Jupyter notebook file.
+    
+    Parameters
+    ----------
+    path : Path
+        Path to the notebook file (.ipynb).
+    
+    Returns
+    -------
+    nbformat.NotebookNode
+        The loaded notebook object.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> nb = load_notebook(Path("notebook.ipynb"))
+    """
     return nbformat.read(path, as_version=4)
 
 
-def load_excel(path):
+def load_excel(path: Path):
+    """Load an Excel workbook.
+    
+    Parameters
+    ----------
+    path : Path
+        Path to the Excel file (.xlsx or .xlsm).
+    
+    Returns
+    -------
+    openpyxl.Workbook
+        The loaded Excel workbook object with formulas preserved.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> wb = load_excel(Path("data.xlsx"))
+    >>> print(wb.sheetnames)
+    """
     return load_workbook(path, data_only=False)
 
 
-def load_json(path):
+def load_json(path: Path) -> dict:
+    """Load a JSON file.
+    
+    Parameters
+    ----------
+    path : Path
+        Path to the JSON file.
+    
+    Returns
+    -------
+    dict
+        The parsed JSON data as a dictionary.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> data = load_json(Path("config.json"))
+    """
     with open(path, "r", encoding="utf8") as f:
         return json.load(f)
 
 
-def load_csv(path):
+def load_csv(path: Path) -> pd.DataFrame:
+    """Load a CSV file into a pandas DataFrame.
+    
+    Parameters
+    ----------
+    path : Path
+        Path to the CSV file.
+    
+    Returns
+    -------
+    pandas.DataFrame
+        The loaded CSV data.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> df = load_csv(Path("data.csv"))
+    >>> print(df.head())
+    """
     return pd.read_csv(path)
 
 
-def load_raw_code(path):
+def load_raw_code(path: Path) -> str:
+    """Load raw Python code from a file.
+    
+    Parameters
+    ----------
+    path : Path
+        Path to the Python file (.py).
+    
+    Returns
+    -------
+    str
+        The raw Python code as a string.
+    
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> code = load_raw_code(Path("script.py"))
+    >>> print(len(code))
+    """
     return Path(path).read_text(encoding="utf8")
 
 
@@ -112,19 +242,39 @@ from pathlib import Path
 
 
 def generate_student_notebook(instructor_path: str | Path, output_path: str | Path):
-    """
-    Create a student version of an instructor Jupyter notebook by:
-      - Replacing all function bodies with 'pass'
-      - Removing any code cell that contains assertions
-      - Optionally removing inline assert statements (if present)
-      - Keeping Markdown cells and overall structure identical
-
+    """Create a student version of an instructor Jupyter notebook.
+    
+    Generates a student notebook by:
+    - Replacing all function bodies with 'pass' statements
+    - Removing code cells containing assertions
+    - Removing inline assert statements
+    - Keeping all Markdown cells and overall structure
+    
     Parameters
     ----------
-    instructor_path : str | Path
-        Path to the instructor's notebook (.ipynb)
-    output_path : str | Path
-        Destination path for the student version (.ipynb)
+    instructor_path : str or Path
+        Path to the instructor's notebook (.ipynb).
+    output_path : str or Path
+        Destination path for the student version (.ipynb).
+    
+    Raises
+    ------
+    FileNotFoundError
+        If the instructor notebook does not exist.
+    
+    Examples
+    --------
+    >>> generate_student_notebook(
+    ...     "instructor_solution.ipynb",
+    ...     "student_assignment.ipynb"
+    ... )
+    ✅ Student notebook generated at: student_assignment.ipynb
+    
+    Notes
+    -----
+    This function uses AST parsing to intelligently identify and stub out
+    function definitions while preserving imports, assignments, and
+    markdown content.
     """
     instructor_path = Path(instructor_path)
     output_path = Path(output_path)
@@ -205,15 +355,31 @@ def generate_student_notebook(instructor_path: str | Path, output_path: str | Pa
 
 
 def remove_notebook_with_line(directory: str | Path, line: str):
-    """
-    Remove all Jupyter notebook files in the specified directory that contain a specific line of code.
-
+    """Remove notebooks containing a specific line of code.
+    
+    Searches for and deletes all Jupyter notebook files in the specified
+    directory that contain a particular line of code in any code cell.
+    
     Parameters
     ----------
-    directory : str | Path
+    directory : str or Path
         The directory to search for Jupyter notebook files.
     line : str
-        The line of code to search for within the notebooks.
+        The exact line of code to search for within notebooks.
+    
+    Raises
+    ------
+    ValueError
+        If the specified path is not a directory.
+    
+    Examples
+    --------
+    >>> remove_notebook_with_line("submissions/", "assert solution == ")
+    Deleted notebook: submissions/test_notebook.ipynb
+    
+    Warnings
+    --------
+    This function permanently deletes files. Use with caution.
     """
     directory = Path(directory)
     if not directory.is_dir():
