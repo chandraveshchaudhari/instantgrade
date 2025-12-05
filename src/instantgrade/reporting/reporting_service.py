@@ -16,29 +16,17 @@ class ReportingService:
         solution: dict | None = None,
         debug: bool = False,
         logger=None,
+        total_questions: int = 0,
     ):
         self.debug = debug
         self.solution = solution or {}
-        self.logger = logger              # <-- assign before using
-        self.df: pd.DataFrame | None = self.dataframe(executed_results)
+        self.executed_results = executed_results or []
+        self.logger = logger
+        self.total_questions = total_questions
+        self.df: pd.DataFrame | None = self.dataframe(self.executed_results)
 
         if self.logger:
             self.logger.info(f"[Reporting] Processed {len(self.df)} result rows.")
-
-
-    # -------------------------------------------------------------------------
-    def _get_max_scores_from_solution(self):
-        """
-        Returns a mapping of {question_name: number_of_assertions} from the instructor solution.
-        """
-        if not self.solution or "questions" not in self.solution:
-            return {}
-
-        max_scores = {}
-        for qname, qdata in self.solution["questions"].items():
-            tests = qdata.get("tests", [])
-            max_scores[qname] = len(tests)
-        return max_scores
 
     # -------------------------------------------------------------------------
     def dataframe(self, executed_results: list[dict] = None) -> pd.DataFrame:
@@ -50,8 +38,18 @@ class ReportingService:
             student_path = Path(item.get("student_path", ""))
             results = item.get("results", [])
             ns = item.get("execution", {}).get("namespace", {})
-            student_name = ns.get("name") or student_path.stem
-            roll_no = ns.get("roll_number") or "N/A"
+            meta = item.get("execution", {}).get("student_meta", {})
+
+            student_name = (
+                meta.get("name")
+                or ns.get("name")
+                or student_path.stem
+            )
+            roll_no = (
+                meta.get("roll_number")
+                or ns.get("roll_number")
+                or "N/A"
+            )
 
             for r in results:
                 row = {
@@ -63,9 +61,8 @@ class ReportingService:
                     "status": r.get("status"),
                     "score": r.get("score"),
                     "error": r.get("error"),
+                    "description": r.get("description", ""),
                 }
-                if "description" in r:
-                    row["description"] = r["description"]
                 all_rows.append(row)
 
         df = pd.DataFrame(all_rows)
@@ -75,9 +72,10 @@ class ReportingService:
             self.df = pd.DataFrame()
             return self.df
 
-        # Add max score per question using instructor data
-        max_scores = self._get_max_scores_from_solution()
-        df["max_score"] = df["question"].map(max_scores).fillna(1).astype(int)
+        # Add instructor total from solution ingestion
+        total_assertions = self.total_questions
+        df["max_score"] = 1  # each assertion = 1 mark
+        df["total_possible"] = total_assertions
         df["percentage"] = (df["score"] / df["max_score"]) * 100
         self.df = df
         return df
@@ -95,20 +93,21 @@ class ReportingService:
     def to_html(self, path):
         """
         Generate an interactive HTML report:
-        - Sortable by marks, name, roll
-        - Scrollable summary modal
-        - Totals derived from instructor notebook
+        - Sortable and filterable by marks, name, roll, file
+        - Excludes `[missing student identity]` rows in dropdowns/summary
         """
         if self.df is None:
             raise RuntimeError("Report not built yet.")
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        grouped = self.df.groupby(["file", "student", "roll_number"])
+        # --- Exclude missing identity rows for UI ---
+        df_summary = self.df[self.df["assertion"] != "[missing student identity]"].copy()
+
+        grouped = df_summary.groupby(["file", "student", "roll_number"])
         html_out = StringIO()
 
-        html_out.write(
-            """
+        html_out.write("""
         <html><head><meta charset="UTF-8"><title>Evaluator Report</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
@@ -132,24 +131,14 @@ class ReportingService:
                 left: 50%;
                 transform: translateX(-50%);
                 width: 70%;
-                max-height: 70vh;  /* fixed height */
-                overflow-y: auto;  /* enable scrolling */
+                max-height: 70vh;
+                overflow-y: auto;
                 background: white;
                 border: 2px solid #555;
                 border-radius: 8px;
                 padding: 20px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 z-index: 1000;
-            }
-            #summaryModal::-webkit-scrollbar {
-                width: 10px;
-            }
-            #summaryModal::-webkit-scrollbar-thumb {
-                background-color: #ccc;
-                border-radius: 10px;
-            }
-            #summaryModal::-webkit-scrollbar-thumb:hover {
-                background-color: #999;
             }
             #overlay {
                 display: none;
@@ -158,25 +147,23 @@ class ReportingService:
                 background: rgba(0,0,0,0.5);
                 z-index: 999;
             }
-            .close-btn {
-                float: right;
-                cursor: pointer;
-                color: red;
-                font-weight: bold;
-            }
+            .close-btn { float: right; cursor: pointer; color: red; font-weight: bold; }
         </style>
         <script>
             function filterReports() {
                 const studentVal = document.getElementById("studentSelect").value;
-                const questionVal = document.getElementById("questionSelect").value;
+                const rollVal = document.getElementById("rollSelect").value;
+                const fileVal = document.getElementById("fileSelect").value;
                 document.querySelectorAll(".student-block").forEach(div => {
-                    const showStudent = (studentVal === "" || div.id === studentVal);
-                    div.style.display = showStudent ? "block" : "none";
-                    if (showStudent) {
-                        div.querySelectorAll(".question-block").forEach(qb => {
-                            qb.style.display = (questionVal === "" || qb.dataset.qname === questionVal) ? "block" : "none";
-                        });
-                    }
+                    const name = div.dataset.name;
+                    const roll = div.dataset.roll;
+                    const file = div.dataset.file;
+                    const show = (
+                        (studentVal === "" || name === studentVal) &&
+                        (rollVal === "" || roll === rollVal) &&
+                        (fileVal === "" || file === fileVal)
+                    );
+                    div.style.display = show ? "block" : "none";
                 });
             }
             function sortStudents() {
@@ -190,10 +177,13 @@ class ReportingService:
                     const nameB = b.dataset.name.toLowerCase();
                     const rollA = a.dataset.roll.toLowerCase();
                     const rollB = b.dataset.roll.toLowerCase();
+                    const fileA = a.dataset.file.toLowerCase();
+                    const fileB = b.dataset.file.toLowerCase();
                     switch(sortType) {
                         case "marks": return scoreB - scoreA;
                         case "name": return nameA.localeCompare(nameB);
                         case "roll": return rollA.localeCompare(rollB);
+                        case "file": return fileA.localeCompare(fileB);
                         case "default": return nameA === "student name" ? 1 : -1;
                     }
                 });
@@ -216,6 +206,7 @@ class ReportingService:
             <option value="marks">Total Marks (High → Low)</option>
             <option value="name">Student Name (A–Z)</option>
             <option value="roll">Roll Number (A–Z)</option>
+            <option value="file">File Name (A–Z)</option>
             <option value="default">Default (Student Name Last)</option>
         </select>
 
@@ -224,62 +215,54 @@ class ReportingService:
         <label for="studentSelect">Student:</label>
         <select id="studentSelect" onchange="filterReports()">
             <option value="">-- All Students --</option>
-        """
-        )
+        """)
 
-        # --- Student summaries per file ---
-        summary = (
-            self.df.groupby(["file", "student", "roll_number"])
-            .agg(total_score=("score", "sum"), max_score=("max_score", "sum"))
-            .reset_index()
-        )
-        summary["percentage"] = (summary["total_score"] / summary["max_score"] * 100).fillna(0)
-        summary = summary.sort_values(
-            by=["total_score", "percentage"], ascending=False
-        ).reset_index(drop=True)
+        # Student dropdown
+        for student in sorted(df_summary["student"].unique()):
+            html_out.write(f"<option value='{html_lib.escape(student)}'>{html_lib.escape(student)}</option>")
+        html_out.write("</select>")
 
-        for _, row in summary.iterrows():
-            student = row["student"]
-            roll = row["roll_number"]
-            sid = f"{student}_{roll}".replace(" ", "_")
-            html_out.write(
-                f"<option value='{sid}'>{html_lib.escape(student)} ({html_lib.escape(str(roll))})</option>"
-            )
+        # Roll dropdown
+        html_out.write("""
+        <label for="rollSelect">Roll:</label>
+        <select id="rollSelect" onchange="filterReports()">
+            <option value="">-- All Rolls --</option>
+        """)
+        for roll in sorted(df_summary["roll_number"].unique()):
+            html_out.write(f"<option value='{html_lib.escape(str(roll))}'>{html_lib.escape(str(roll))}</option>")
+        html_out.write("</select>")
 
+        # File dropdown
+        html_out.write("""
+        <label for="fileSelect">File:</label>
+        <select id="fileSelect" onchange="filterReports()">
+            <option value="">-- All Files --</option>
+        """)
+        for file in sorted(Path(f).name for f in df_summary["file"].unique()):
+            html_out.write(f"<option value='{html_lib.escape(file)}'>{html_lib.escape(file)}</option>")
         html_out.write("</select><hr><div id='reportContainer'>")
 
         # --- Individual student sections ---
+        instructor_total = self.solution.get("summary", {}).get("total_assertions", 0) or 1
         for (file, student, roll_number), g in grouped:
-            sid = f"{student}_{roll_number}".replace(" ", "_")
             total_score = g["score"].sum()
-            total_possible = g["max_score"].sum()
-            percentage = (
-                round((total_score / total_possible) * 100, 2) if total_possible > 0 else 0.0
-            )
+            total_possible = instructor_total
+            percentage = round((total_score / total_possible) * 100, 2)
 
             html_out.write(
-                f'<div class="student-block" id="{sid}" data-name="{student}" data-roll="{roll_number}" data-total="{total_score}">'
+                f'<div class="student-block" data-name="{html_lib.escape(student)}" '
+                f'data-roll="{html_lib.escape(str(roll_number))}" '
+                f'data-file="{html_lib.escape(Path(file).name)}" '
+                f'data-total="{total_score}">'
             )
-            html_out.write(
-                f"<h3>{html_lib.escape(student)} — {html_lib.escape(str(roll_number))}</h3>"
-            )
-            html_out.write(f"<p><strong>File:</strong> {html_lib.escape(str(file))}</p>")
-            html_out.write(
-                f"<p class='summary'>Total: {total_score}/{total_possible} ({percentage}%)</p>"
-            )
+            html_out.write(f"<h3>{html_lib.escape(student)} — {html_lib.escape(str(roll_number))}</h3>")
+            html_out.write(f"<p><strong>File:</strong> {html_lib.escape(str(Path(file).name))}</p>")
+            html_out.write(f"<p class='summary'>Total: {total_score}/{total_possible} ({percentage}%)</p>")
 
             for q, subdf in g.groupby("question"):
-                html_out.write(
-                    f'<div class="question-block" data-qname="{html_lib.escape(str(q))}">'
-                )
-                html_out.write(
-                    f'<div class="question-header">Question: {html_lib.escape(str(q))}</div>'
-                )
-                desc = (
-                    subdf["description"].iloc[0]
-                    if "description" in subdf.columns and pd.notna(subdf["description"].iloc[0])
-                    else ""
-                )
+                html_out.write(f'<div class="question-block" data-qname="{html_lib.escape(str(q))}">')
+                html_out.write(f'<div class="question-header">Question: {html_lib.escape(str(q))}</div>')
+                desc = subdf["description"].iloc[0] if "description" in subdf.columns else ""
                 if desc:
                     html_out.write(f'<div class="description">{html_lib.escape(desc)}</div>')
                 html_out.write(
@@ -296,27 +279,25 @@ class ReportingService:
                 html_out.write("</tbody></table></div>")
             html_out.write("</div>")
 
-        html_out.write("</div>")  # reportContainer end
-
-        # --- Summary Modal ---
-        html_out.write(
-            """
-        <div id="overlay" onclick="closeSummary()"></div>
+        # --- Summary modal ---
+        html_out.write("""
+        </div><div id="overlay" onclick="closeSummary()"></div>
         <div id="summaryModal">
             <span class="close-btn" onclick="closeSummary()">✖</span>
             <h3>Student Summary</h3>
             <table>
                 <thead><tr>
-                  <th>Student</th>
-                  <th>Roll Number</th>
-                  <th>File</th>
-                  <th>Total Marks</th>
-                  <th>Out of</th>
-                  <th>Percentage</th>
-                </tr></thead>
-                <tbody>
-        """
+                  <th>Student</th><th>Roll Number</th><th>File</th>
+                  <th>Total Marks</th><th>Out Of</th><th>Percentage</th>
+                </tr></thead><tbody>
+        """)
+        summary = (
+            df_summary.groupby(["file", "student", "roll_number"])
+            .agg(total_score=("score", "sum"))
+            .reset_index()
         )
+        summary["max_score"] = instructor_total
+        summary["percentage"] = (summary["total_score"] / summary["max_score"] * 100).fillna(0)
         for _, row in summary.iterrows():
             html_out.write(
                 f"<tr><td>{html_lib.escape(row['student'])}</td>"
