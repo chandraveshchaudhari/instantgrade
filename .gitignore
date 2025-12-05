@@ -142,3 +142,6 @@ data/python_example4\ copy/
 # Test PyPI builds
 .testpypi/
 testpypi-dist/
+data/python_example1/submissions/*
+data/.DS_Store
+data/python_example1/.DS_Store

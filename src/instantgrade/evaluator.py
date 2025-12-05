@@ -18,6 +18,8 @@ from instantgrade.reporting.reporting_service import ReportingService
 
 import json
 
+from instantgrade.utils.logger import setup_logger
+
 
 class Evaluator:
     """Orchestrator for the evaluation pipeline.
@@ -66,26 +68,34 @@ class Evaluator:
     >>> executed = evaluator.execute_all(submissions)
     >>> report = evaluator.build_report(executed)
     """
-
     def __init__(
         self,
         solution_file_path: str | Path,
         submission_folder_path: str | Path,
         config_json: str | Path | None = None,
+        log_path: str | Path | None = None,          # NEW
+        log_level: str = "normal",                   # NEW: minimal, normal, verbose, debug
     ) -> None:
         self.solution_file_path = Path(solution_file_path)
         self.submission_folder_path = Path(submission_folder_path)
-
         self.config = None
+
         if config_json is not None:
             config_path = Path(config_json)
             if config_path.exists():
                 with open(config_path, "r", encoding="utf8") as f:
                     self.config = json.load(f)
 
+        # Setup logger
+        self.logger = setup_logger(log_dir=log_path, level=log_level)
+        self.logger.info("Evaluator initialized.")
+        self.logger.debug(f"Solution path: {self.solution_file_path}")
+        self.logger.debug(f"Submission folder: {self.submission_folder_path}")
+
         self.submissions = None
         self.executed = None
         self.report = None
+
 
     # --- High-level pipelines -------------------------------------------------
     def run(self) -> Any:
@@ -104,10 +114,25 @@ class Evaluator:
         >>> evaluator = Evaluator("solution.ipynb", "submissions/")
         >>> report = evaluator.run()
         """
-        submissions = self.load()
-        executed = self.execute_all(submissions)
-        report = self.build_report(executed)
-        return report
+
+        self.logger.info("Starting evaluation pipeline...")
+
+        try:
+            submissions = self.load()
+            self.logger.info(f"Loaded {len(submissions.list_submissions())} submissions")
+
+            executed = self.execute_all(submissions)
+            self.logger.info("Execution phase completed successfully")
+
+            report = self.build_report(executed)
+            self.logger.info("Report generation complete")
+
+            return report
+
+        except Exception as e:
+            self.logger.exception(f"Pipeline failed: {e}")
+            raise
+
 
     # --- Sub-parts exposed for granular control -------------------------------
     def load(self) -> List[Path]:
@@ -147,12 +172,21 @@ class Evaluator:
         >>> executed = evaluator.execute_all(submissions)
         >>> print(f"Executed {len(executed)} submissions")
         """
+        self.logger.info("Executing all student submissions...")
+        executed_results = []
+
         solution_file = submissions.load_solution()
-        executed_results: List[Any] = []
+
         for sub in submissions.list_submissions():
-            executed = ExecutionService().execute(solution_file, sub)
-            executed_results.append(executed)
+            self.logger.debug(f"Running: {sub}")
+            try:
+                result = ExecutionService().execute(solution_file, sub)
+                executed_results.append(result)
+                self.logger.info(f"✅ {sub.name} executed successfully")
+            except Exception as e:
+                self.logger.warning(f"⚠️  Error executing {sub.name}: {e}")
         return executed_results
+
 
     def build_report(self, executed_results: Iterable[dict]) -> Any:
         """Build a report from execution results.
@@ -175,6 +209,23 @@ class Evaluator:
         >>> report = evaluator.build_report(executed)
         """
         return ReportingService(executed_results)
+
+    def to_html(self, path: str | Path | None = None) -> str:
+        """Convert the report to HTML format.
+
+        Returns
+        -------
+        str
+            The HTML representation of the report.
+
+        Examples
+        --------
+        >>> report = evaluator.build_report(executed)
+        >>> html_output = evaluator.to_html()
+        """
+        if self.report is None:
+            raise ValueError("Report has not been built yet. Call build_report() first.")
+        return self.report.to_html(path)
 
     def save_all_reports(self, report_obj: Any, output_dir: str | Path) -> Path:
         """Save generated reports to disk.
