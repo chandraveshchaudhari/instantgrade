@@ -1,9 +1,16 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/chandraveshchaudhari/personal-information/bf3d602dbbf0b7d0bbe6461351c163144b617d24/logos/my%20github%20logo%20template-python%20project%20template%20small.png" width="640" height="320">
-</div>
-
-# InstantGrade
-> An automated evaluation framework for Python notebooks and Excel assignments
+<table>
+   <tr>
+      <td valign="middle">
+   <img src="https://raw.githubusercontent.com/chandraveshchaudhari/chandraveshchaudhari/initial_setup/data/logo.png" alt="Dr. Chandravesh Chaudhari Logo" style="max-width: 100%; width: 180px; height: auto;" />
+      </td>
+      <td valign="middle" style="padding-left: 20px;">
+         <h1 style="margin:0">InstantGrade</h1>
+         <p style="margin-top:4px; margin-bottom:6px; font-size:1.05rem; color:#444">
+            An automated evaluation framework for Python notebooks and Excel assignments
+         </p>
+      </td>
+   </tr>
+</table>
 
 [![PyPI version](https://badge.fury.io/py/instantgrade.svg)](https://pypi.org/project/instantgrade/)
 [![Python](https://img.shields.io/pypi/pyversions/instantgrade.svg)](https://pypi.org/project/instantgrade/)
@@ -11,6 +18,22 @@
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://chandraveshchaudhari.github.io/instantgrade/)
 [![CI](https://github.com/chandraveshchaudhari/instantgrade/workflows/Test%20Package%20Build/badge.svg)](https://github.com/chandraveshchaudhari/instantgrade/actions)
 [![codecov](https://codecov.io/gh/chandraveshchaudhari/instantgrade/branch/master/graph/badge.svg)](https://codecov.io/gh/chandraveshchaudhari/instantgrade)
+
+---
+
+## 🌱 Dr. Chandravesh Chaudhari
+
+[![Website](https://img.shields.io/badge/🌐_Website-Visit-00C853?style=for-the-badge)](https://chandraveshchaudhari.github.io/website/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/chandraveshchaudhari)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:chandraveshchaudhari@gmail.com)
+
+Dr. Chandravesh Chaudhari is the maintainer of InstantGrade — an automated evaluation platform currently focused on grading Python Jupyter notebooks and Excel assignments and more to follow in future.
+
+Contact & social links:
+
+- Email: [chandraveshchaudhari@gmail.com](mailto:chandraveshchaudhari@gmail.com)
+- Website: https://chandraveshchaudhari.github.io/website/
+- LinkedIn: https://www.linkedin.com/in/chandraveshchaudhari
 
 ---
 
@@ -160,71 +183,5 @@ All kinds of contributions are appreciated:
 5. Open a Pull Request
 
 For detailed contribution guidelines, see the [Contributing Guide](https://chandraveshchaudhari.github.io/instantgrade/contributing.html).
-
-## Documentation
-
-Complete documentation is available at **[chandraveshchaudhari.github.io/instantgrade](https://chandraveshchaudhari.github.io/instantgrade/)**
-
-### Building Documentation Locally
-
-```bash
-# Install documentation dependencies
-pip install -e ".[docs]"
-
-# Build the documentation
-cd docs
-make html
-
-# View the documentation
-open build/html/index.html  # macOS
-# or
-xdg-open build/html/index.html  # Linux
-# or
-start build/html/index.html  # Windows
-```
-
-The documentation is built using:
-- **Sphinx** - Documentation engine
-- **MyST Parser** - Markdown support
-- **Furo** - Clean, modern theme
-- **Jupyter-Sphinx** - Notebook integration
-- **Sphinx Autodoc** - Automatic API documentation
-
-## Development & Deployment
-
-### Continuous Integration
-This project uses GitHub Actions for continuous integration and deployment:
-- **Automated Testing**: Every push is automatically tested across multiple Python versions (3.10-3.12) and operating systems
-- **Automatic PyPI Publishing**: New releases are automatically published to PyPI when version tags are pushed
-- **Documentation Deployment**: Documentation is automatically built and deployed to GitHub Pages
-- **Build Verification**: Package builds are verified before deployment
-
-### Publishing New Versions
-To publish a new version to PyPI:
-
-1. Update the version number in `setup.py` and `pyproject.toml`
-2. Update `CHANGELOG.md` with the new version
-3. Commit the changes:
-   ```bash
-   git add setup.py pyproject.toml CHANGELOG.md
-   git commit -m "Bump version to X.Y.Z"
-   ```
-4. Create and push a version tag:
-   ```bash
-   git tag vX.Y.Z
-   git push origin master
-   git push origin vX.Y.Z
-   ```
-5. GitHub Actions will automatically:
-   - Build and publish to PyPI
-   - Create a GitHub Release
-   - Deploy updated documentation
-
-For detailed instructions, see [PUBLISHING.md](PUBLISHING.md)
-
-### CI/CD Status
-![Test Package Build](https://github.com/chandraveshchaudhari/instantgrade/actions/workflows/test.yml/badge.svg)
-![Publish to PyPI](https://github.com/chandraveshchaudhari/instantgrade/actions/workflows/publish.yml/badge.svg)
-![Documentation](https://github.com/chandraveshchaudhari/instantgrade/actions/workflows/docs.yml/badge.svg)
 
 
