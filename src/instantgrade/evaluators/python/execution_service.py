@@ -31,7 +31,9 @@ class ExecutionService:
     # ------------------------------------------------------------------
     def _detect_docker_env(self) -> bool:
         """Detect if Docker can be used."""
-        in_colab = "COLAB_GPU" in os.environ or "google.colab" in str(getattr(__import__("sys"), "modules", {}))
+        in_colab = "COLAB_GPU" in os.environ or "google.colab" in str(
+            getattr(__import__("sys"), "modules", {})
+        )
         docker_available = shutil.which("docker") is not None
         return docker_available and not in_colab
 
@@ -46,8 +48,13 @@ class ExecutionService:
 
         if file_type == "notebook":
             if self.use_docker:
-                from instantgrade.evaluators.python.execution_service_docker import ExecutionServiceDocker
-                executor = ExecutionServiceDocker(timeout=self.timeout, debug=self.debug, logger=self.logger)
+                from instantgrade.evaluators.python.execution_service_docker import (
+                    ExecutionServiceDocker,
+                )
+
+                executor = ExecutionServiceDocker(
+                    timeout=self.timeout, debug=self.debug, logger=self.logger
+                )
                 return executor.execute_student(solution, submission_path)
             else:
                 return self._execute_notebook_locally(solution, submission_path)
@@ -75,8 +82,10 @@ class ExecutionService:
         default_roll = solution.get("default_roll_number", None)
 
         if (student_name in [None, "", default_name]) or (roll_number in [None, "", default_roll]):
-            msg = (f"Skipping {submission_path.name}: missing or default name/roll_number "
-                   f"(name={student_name}, roll={roll_number})")
+            msg = (
+                f"Skipping {submission_path.name}: missing or default name/roll_number "
+                f"(name={student_name}, roll={roll_number})"
+            )
             self.logger.warning(msg)
             return {
                 "student_path": submission_path,
@@ -107,13 +116,15 @@ class ExecutionService:
                 )
             except Exception:
                 tb = traceback.format_exc()
-                q_results = [{
-                    "question": qname,
-                    "assertion": "[internal error]",
-                    "status": "failed",
-                    "error": tb,
-                    "score": 0,
-                }]
+                q_results = [
+                    {
+                        "question": qname,
+                        "assertion": "[internal error]",
+                        "status": "failed",
+                        "error": tb,
+                        "score": 0,
+                    }
+                ]
 
             for r in q_results:
                 r["description"] = description

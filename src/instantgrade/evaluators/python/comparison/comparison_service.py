@@ -67,12 +67,7 @@ class ComparisonService:
             exp = repr(expected).splitlines()
             act = repr(actual).splitlines()
 
-            diff = difflib.unified_diff(
-                exp, act,
-                fromfile="Expected",
-                tofile="Actual",
-                lineterm=""
-            )
+            diff = difflib.unified_diff(exp, act, fromfile="Expected", tofile="Actual", lineterm="")
 
             return "\n".join(diff)
 
@@ -134,14 +129,16 @@ class ComparisonService:
             try:
                 exec(compile(code, "<assertion>", "exec"), namespace)
 
-                results.append({
-                    "question": question,
-                    "assertion": code,
-                    "status": "passed",
-                    "score": 1,
-                    "error": None,
-                    "description": description,
-                })
+                results.append(
+                    {
+                        "question": question,
+                        "assertion": code,
+                        "status": "passed",
+                        "score": 1,
+                        "error": None,
+                        "description": description,
+                    }
+                )
                 continue
 
             # ----------------------------------------------------------
@@ -181,14 +178,16 @@ class ComparisonService:
                         f"{tb}"
                     )
 
-                results.append({
-                    "question": question,
-                    "assertion": code,
-                    "status": "failed",
-                    "score": 0,
-                    "error": err_msg,
-                    "description": description,
-                })
+                results.append(
+                    {
+                        "question": question,
+                        "assertion": code,
+                        "status": "failed",
+                        "score": 0,
+                        "error": err_msg,
+                        "description": description,
+                    }
+                )
                 continue
 
             # ----------------------------------------------------------
@@ -202,14 +201,16 @@ class ComparisonService:
                     f"Text: {e.text}\n"
                 )
 
-                results.append({
-                    "question": question,
-                    "assertion": code,
-                    "status": "failed",
-                    "score": 0,
-                    "error": err_msg,
-                    "description": description,
-                })
+                results.append(
+                    {
+                        "question": question,
+                        "assertion": code,
+                        "status": "failed",
+                        "score": 0,
+                        "error": err_msg,
+                        "description": description,
+                    }
+                )
                 continue
 
             # ----------------------------------------------------------
@@ -222,14 +223,16 @@ class ComparisonService:
                     " or is spelled incorrectly.\n"
                 )
 
-                results.append({
-                    "question": question,
-                    "assertion": code,
-                    "status": "failed",
-                    "score": 0,
-                    "error": err_msg,
-                    "description": description,
-                })
+                results.append(
+                    {
+                        "question": question,
+                        "assertion": code,
+                        "status": "failed",
+                        "score": 0,
+                        "error": err_msg,
+                        "description": description,
+                    }
+                )
                 continue
 
             # ----------------------------------------------------------
@@ -243,14 +246,16 @@ class ComparisonService:
                     f"Traceback:\n{tb}"
                 )
 
-                results.append({
-                    "question": question,
-                    "assertion": code,
-                    "status": "failed",
-                    "score": 0,
-                    "error": err_msg,
-                    "description": description,
-                })
+                results.append(
+                    {
+                        "question": question,
+                        "assertion": code,
+                        "status": "failed",
+                        "score": 0,
+                        "error": err_msg,
+                        "description": description,
+                    }
+                )
                 continue
 
             # ----------------------------------------------------------
@@ -264,14 +269,16 @@ class ComparisonService:
                     f"Traceback:\n{tb}"
                 )
 
-                results.append({
-                    "question": question,
-                    "assertion": code,
-                    "status": "failed",
-                    "score": 0,
-                    "error": err_msg,
-                    "description": description,
-                })
+                results.append(
+                    {
+                        "question": question,
+                        "assertion": code,
+                        "status": "failed",
+                        "score": 0,
+                        "error": err_msg,
+                        "description": description,
+                    }
+                )
                 continue
 
         return results

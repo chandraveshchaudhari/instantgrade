@@ -1,4 +1,5 @@
 """Excel evaluator runner (minimal)."""
+
 from .excel_executor import ExcelExecutor
 from pathlib import Path
 

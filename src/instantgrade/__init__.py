@@ -17,6 +17,7 @@ __all__ = [
 try:
     # Prefer relative import to support package moves and editable installs
     from .evaluators.python.evaluator import Evaluator  # type: ignore
+
     __all__.append("Evaluator")
 except Exception:
     # Import errors here should not break package import in minimal setups.

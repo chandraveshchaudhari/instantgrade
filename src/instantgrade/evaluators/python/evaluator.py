@@ -54,7 +54,6 @@ class Evaluator:
         parallel_workers: int = 1,
         log_path: str | Path = "./logs",
         log_level: str = "normal",
-
         # NEW OPTIONAL PARAMETERS FOR REPORTING
         best_n: Optional[int] = None,
         scaled_range: Optional[Tuple[float, float]] = None,
@@ -108,9 +107,7 @@ class Evaluator:
                 [f for f in self.submission_path.glob("*.ipynb") if f.is_file()]
             )
             if not all_submissions:
-                raise FileNotFoundError(
-                    f"No student notebooks found in {self.submission_path}"
-                )
+                raise FileNotFoundError(f"No student notebooks found in {self.submission_path}")
 
         self.logger.info(f"Discovered {len(all_submissions)} submissions to grade.")
 
@@ -145,7 +142,9 @@ class Evaluator:
             try:
                 execution_service.start_container()
             except Exception:
-                self.logger.warning("Could not start persistent Docker container; continuing with per-student docker runs")
+                self.logger.warning(
+                    "Could not start persistent Docker container; continuing with per-student docker runs"
+                )
         else:
             self.logger.info("Starting Local evaluation pipeline...")
             execution_service = NotebookExecutor(timeout=120)
@@ -167,18 +166,17 @@ class Evaluator:
                 except Exception as e:
                     self.logger.exception(f"Fatal error grading {sub.name}: {e}")
 
-                    results.append({
-                        "student_path": sub,
-                        "execution": {
-                            "success": False,
-                            "errors": [str(e)],
-                            "student_meta": {
-                                "name": "Unknown",
-                                "roll_number": "Unknown"
+                    results.append(
+                        {
+                            "student_path": sub,
+                            "execution": {
+                                "success": False,
+                                "errors": [str(e)],
+                                "student_meta": {"name": "Unknown", "roll_number": "Unknown"},
                             },
-                        },
-                        "results": [],
-                    })
+                            "results": [],
+                        }
+                    )
 
         finally:
             # If using docker and we started a persistent container, teardown
@@ -190,7 +188,9 @@ class Evaluator:
         return results
 
     # ------------------------------------------------------------------
-    def _grade_local_student(self, executor: NotebookExecutor, submission_path: Path) -> Dict[str, Any]:
+    def _grade_local_student(
+        self, executor: NotebookExecutor, submission_path: Path
+    ) -> Dict[str, Any]:
         """Grade a student locally by executing their notebook and running assertions."""
         self.logger.info(f"[Local] Grading {submission_path.name}")
 
@@ -213,11 +213,13 @@ class Evaluator:
         assertions_list = []
         for question_name, question_data in self.solution.get("questions", {}).items():
             for assertion_code in question_data.get("tests", []):
-                assertions_list.append({
-                    "code": assertion_code,
-                    "question": question_name,
-                    "description": question_data.get("description", ""),
-                })
+                assertions_list.append(
+                    {
+                        "code": assertion_code,
+                        "question": question_name,
+                        "description": question_data.get("description", ""),
+                    }
+                )
 
         # Run all assertions
         results = comparison_svc.run_assertions(assertions_list, ns)
@@ -248,7 +250,5 @@ class Evaluator:
     def summary(self, all_results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Generate quick text summary statistics."""
         total = len(all_results)
-        passed = sum(
-            1 for r in all_results if r.get("execution", {}).get("success", False)
-        )
+        passed = sum(1 for r in all_results if r.get("execution", {}).get("success", False))
         return {"total": total, "passed": passed, "failed": total - passed}

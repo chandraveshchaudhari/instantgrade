@@ -46,6 +46,7 @@ def log(msg: str) -> None:
 # Helpers for executing the student notebook
 # ---------------------------------------------------------------------------
 
+
 def execute_student_notebook(nb_path: Path) -> Tuple[Dict[str, Any], List[str]]:
     """
     Execute all code cells in the student's notebook into a single namespace.
@@ -107,6 +108,7 @@ def execute_student_notebook(nb_path: Path) -> Tuple[Dict[str, Any], List[str]]:
 # Helpers for extracting name / roll_number
 # ---------------------------------------------------------------------------
 
+
 def extract_name_roll_from_ns(ns: Dict[str, Any]) -> Tuple[str | None, str | None]:
     name = ns.get("name")
     roll = ns.get("roll_number")
@@ -150,12 +152,18 @@ def extract_name_roll_from_cells(nb_path: Path) -> Tuple[str | None, str | None]
                     if isinstance(tgt, ast.Name):
                         if tgt.id == "name" and isinstance(node.value, (ast.Constant, ast.Str)):
                             # ast.Str for <3.8 compatibility, ast.Constant for newer
-                            val = getattr(node.value, "s", None) or getattr(node.value, "value", None)
+                            val = getattr(node.value, "s", None) or getattr(
+                                node.value, "value", None
+                            )
                             if isinstance(val, str):
                                 found_name = val
                                 log(f"Found name='{val}' in cell {idx}")
-                        if tgt.id == "roll_number" and isinstance(node.value, (ast.Constant, ast.Str)):
-                            val = getattr(node.value, "s", None) or getattr(node.value, "value", None)
+                        if tgt.id == "roll_number" and isinstance(
+                            node.value, (ast.Constant, ast.Str)
+                        ):
+                            val = getattr(node.value, "s", None) or getattr(
+                                node.value, "value", None
+                            )
                             if isinstance(val, str):
                                 found_roll = val
                                 log(f"Found roll_number='{val}' in cell {idx}")
@@ -166,6 +174,7 @@ def extract_name_roll_from_cells(nb_path: Path) -> Tuple[str | None, str | None]
 # ---------------------------------------------------------------------------
 # Main grading logic
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     log("Starting grading...")

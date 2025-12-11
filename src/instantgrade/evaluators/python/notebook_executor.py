@@ -120,19 +120,27 @@ class NotebookExecutor:
         container_name = f"nbexec_{os.getpid()}"
 
         cmd = [
-            "docker", "run", "--rm",
-            "--network", "none",
-            "-v", f"{tmpdir}:/workspace",
-            "-w", "/workspace",
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            "none",
+            "-v",
+            f"{tmpdir}:/workspace",
+            "-w",
+            "/workspace",
             "python:3.11-slim",
-            "bash", "-c",
+            "bash",
+            "-c",
             (
                 "pip install --no-cache-dir nbformat nbclient pandas openpyxl > /dev/null && "
                 f"python - <<'PY'\n"
                 "import nbformat, traceback\n"
                 "from nbclient import NotebookClient\n"
                 "from pathlib import Path\n"
-                "nb = nbformat.read(Path('/workspace/') / Path('" + path.name + "'), as_version=4)\n"
+                "nb = nbformat.read(Path('/workspace/') / Path('"
+                + path.name
+                + "'), as_version=4)\n"
                 "client = NotebookClient(nb, timeout=60, allow_errors=True, kernel_name='python3')\n"
                 "try:\n"
                 "    client.execute()\n"

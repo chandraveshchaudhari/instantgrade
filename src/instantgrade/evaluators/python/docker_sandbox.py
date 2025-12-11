@@ -8,6 +8,7 @@ import json
 import traceback
 import subprocess
 
+
 class DockerSandbox:
     """
     Run student notebooks inside a Docker sandbox for isolation and timeout control.
@@ -39,10 +40,11 @@ class DockerSandbox:
 
             # Command: execute notebook safely
             command = [
-                "bash", "-c",
+                "bash",
+                "-c",
                 f"pip install jupyter nbconvert pandas numpy matplotlib seaborn >/dev/null 2>&1 && "
                 f"jupyter nbconvert --to notebook --execute {notebook_path.name} "
-                f"--output output.ipynb --ExecutePreprocessor.timeout={self.timeout}"
+                f"--output output.ipynb --ExecutePreprocessor.timeout={self.timeout}",
             ]
 
             container = self.client.containers.run(

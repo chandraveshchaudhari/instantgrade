@@ -67,16 +67,27 @@ class ExecutionServiceDocker:
 
             # Build docker command
             cmd = [
-                "docker", "run", "--rm",
-                "--memory", self.memory_limit,
-                "--cpus", self.cpu_limit,
-                "--pids-limit", str(self.pids_limit),
-                "--network", self.network_mode,
-                "-e", f"QUESTION_TIMEOUT={self.per_question_timeout}",
-                "-v", f"{tmpdir_path}:/workspace",
-                "-w", "/workspace",
+                "docker",
+                "run",
+                "--rm",
+                "--memory",
+                self.memory_limit,
+                "--cpus",
+                self.cpu_limit,
+                "--pids-limit",
+                str(self.pids_limit),
+                "--network",
+                self.network_mode,
+                "-e",
+                f"QUESTION_TIMEOUT={self.per_question_timeout}",
+                "-v",
+                f"{tmpdir_path}:/workspace",
+                "-w",
+                "/workspace",
                 self.docker_image,
-                "bash", "-c", "python grader.py"
+                "bash",
+                "-c",
+                "python grader.py",
             ]
 
             if self.debug:
@@ -136,8 +147,12 @@ class ExecutionServiceDocker:
             try:
                 graded = json.loads(results_file.read_text(encoding="utf-8"))
             except Exception as e:
-                self.logger.exception(f"Failed to parse results.json for {submission_path.name}: {e}")
-                return self._make_error_result(submission_path, f"Invalid results.json: {e}", total_elapsed, full_stdout)
+                self.logger.exception(
+                    f"Failed to parse results.json for {submission_path.name}: {e}"
+                )
+                return self._make_error_result(
+                    submission_path, f"Invalid results.json: {e}", total_elapsed, full_stdout
+                )
 
             # Emit host-side log summary of graded results for debugging
             try:
@@ -145,7 +160,9 @@ class ExecutionServiceDocker:
                 cnt = len(results_list)
                 scores = [r.get("score", 0) for r in results_list]
                 passed = sum(1 for s in scores if s and float(s) > 0)
-                self.logger.info(f"[Docker] Parsed results.json for {submission_path.name}: {cnt} rows — passed={passed}")
+                self.logger.info(
+                    f"[Docker] Parsed results.json for {submission_path.name}: {cnt} rows — passed={passed}"
+                )
                 if self.debug:
                     self.logger.debug(f"[Docker] Sample results (first 5): {results_list[:5]}")
             except Exception:
@@ -172,13 +189,15 @@ class ExecutionServiceDocker:
         """
         import importlib.util
 
-        result = subprocess.run(["docker", "images", "-q", self.docker_image],
-                                capture_output=True, text=True)
+        result = subprocess.run(
+            ["docker", "images", "-q", self.docker_image], capture_output=True, text=True
+        )
 
         # Allow forcing a rebuild via environment variable or debug flag
         env_force = False
         try:
             import os as _os
+
             env_force = _os.environ.get("instantgrade_FORCE_REBUILD", "0") == "1"
         except Exception:
             env_force = False
@@ -198,14 +217,18 @@ class ExecutionServiceDocker:
         if not spec or not spec.origin:
             raise RuntimeError("Could not locate 'instantgrade' package on host.")
 
-        package_root = Path(spec.origin).parent.parent        # /src/instantgrade/ → /src
-        project_root = package_root.parent                    # /evaluator (repo root)
+        package_root = Path(spec.origin).parent.parent  # /src/instantgrade/ → /src
+        project_root = package_root.parent  # /evaluator (repo root)
 
         # Determine installation method
-        use_pyproject = (project_root / "pyproject.toml").exists() or (project_root / "setup.py").exists()
+        use_pyproject = (project_root / "pyproject.toml").exists() or (
+            project_root / "setup.py"
+        ).exists()
         install_cmd = "pip install ." if use_pyproject else "pip install /app/src"
 
-        self.logger.info(f"[Docker] Using {'pyproject.toml' if use_pyproject else 'direct /src'} install mode")
+        self.logger.info(
+            f"[Docker] Using {'pyproject.toml' if use_pyproject else 'direct /src'} install mode"
+        )
 
         # ----------------------------------------------------------------------
         # 2. Generate Dockerfile dynamically
@@ -240,23 +263,29 @@ WORKDIR /workspace
 
             self.logger.info(f"[Docker] Build context: {build_context}")
             try:
-                subprocess.run([
-                    "docker", "build",
-                    "-t", self.docker_image,
-                    "-f", str(dockerfile_path),
-                    str(build_context)
-                ], check=True)
+                subprocess.run(
+                    [
+                        "docker",
+                        "build",
+                        "-t",
+                        self.docker_image,
+                        "-f",
+                        str(dockerfile_path),
+                        str(build_context),
+                    ],
+                    check=True,
+                )
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"[Docker] Build failed: {e}")
                 raise
 
         self.logger.info(f"[Docker] Built image {self.docker_image} successfully.")
 
-
     # ------------------------------------------------------------------
     def _get_grader_source(self) -> Path:
         """Return path to grader.py, with fallback for local dev."""
         import importlib.util
+
         spec = importlib.util.find_spec("instantgrade.evaluators.python.execution.resources")
         if spec and spec.origin:
             path = Path(spec.origin).parent / "grader.py"
@@ -272,7 +301,6 @@ WORKDIR /workspace
             "grader.py not found in instantgrade/execution/resources. "
             "Ensure it exists and package_data includes it."
         )
-
 
     # ------------------------------------------------------------------
     def _make_error_result(

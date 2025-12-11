@@ -2,6 +2,7 @@ class PluginRegistry:
     """
     Placeholder plugin mapping.
     """
+
     def register(self, assignment_type, config):
         pass
 

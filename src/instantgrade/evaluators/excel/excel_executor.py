@@ -3,6 +3,7 @@
 This is a lightweight stub that can be expanded later. It does not
 modify any src/instantgrade files.
 """
+
 from pathlib import Path
 
 
@@ -18,7 +19,15 @@ class ExcelExecutor:
         submission_path = Path(submission_path)
 
         if not submission_path.exists():
-            return {"student_path": submission_path, "execution": {"success": False, "errors": ["File missing"]}, "results": []}
+            return {
+                "student_path": submission_path,
+                "execution": {"success": False, "errors": ["File missing"]},
+                "results": [],
+            }
 
         # Placeholder: no real grading yet
-        return {"student_path": submission_path, "execution": {"success": True, "errors": []}, "results": []}
+        return {
+            "student_path": submission_path,
+            "execution": {"success": True, "errors": []},
+            "results": [],
+        }
