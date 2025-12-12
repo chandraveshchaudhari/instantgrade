@@ -189,9 +189,17 @@ class ExecutionServiceDocker:
         """
         import importlib.util
 
-        result = subprocess.run(
-            ["docker", "images", "-q", self.docker_image], capture_output=True, text=True
-        )
+        # If possible, compute a git-based tag so images are tied to source.
+        try:
+            package_root = Path(__file__).parent.parent.parent.parent
+            git_sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=package_root, text=True).strip()
+            image_tag = f"instantgrade:{git_sha}"
+        except Exception:
+            # Fallback to the configured docker_image tag
+            image_tag = self.docker_image
+
+        # Check if an image with this tag already exists
+        result = subprocess.run(["docker", "images", "-q", image_tag], capture_output=True, text=True)
 
         # Allow forcing a rebuild via environment variable or debug flag
         env_force = False
@@ -205,10 +213,11 @@ class ExecutionServiceDocker:
         effective_force_rebuild = force_rebuild or env_force or bool(self.debug)
 
         if result.stdout.strip() and not effective_force_rebuild:
-            # Image already exists and rebuild not requested
+            # Image already exists and rebuild not requested — reuse it.
+            # Ensure we use the git-tagged image name for subsequent runs.
+            self.docker_image = image_tag
             return
-
-        self.logger.info(f"[Docker] Building image {self.docker_image} from {self.base_image}...")
+        self.logger.info(f"[Docker] Building image {image_tag} from {self.base_image}...")
 
         # ----------------------------------------------------------------------
         # 1. Locate instantgrade package source
@@ -241,6 +250,10 @@ RUN pip install --no-cache-dir nbformat nbclient pandas openpyxl
 
 # Copy the evaluator project into container
 COPY . /app
+# Also ensure the source tree is available at /app/src so grader.py and
+# runtime imports can resolve local package modules even if pip install
+# behaves differently across environments.
+COPY src /app/src
 WORKDIR /app
 
 # Install instantgrade either from pyproject or /src
@@ -263,18 +276,26 @@ WORKDIR /workspace
 
             self.logger.info(f"[Docker] Build context: {build_context}")
             try:
+                # Build the image tagged with the git SHA tag
                 subprocess.run(
                     [
                         "docker",
                         "build",
                         "-t",
-                        self.docker_image,
+                        image_tag,
                         "-f",
                         str(dockerfile_path),
                         str(build_context),
                     ],
                     check=True,
                 )
+                # Also tag as latest for convenience
+                try:
+                    subprocess.run(["docker", "tag", image_tag, "instantgrade:latest"], check=True)
+                except Exception:
+                    pass
+                # Update the instance docker_image to the built tag
+                self.docker_image = image_tag
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"[Docker] Build failed: {e}")
                 raise
@@ -286,20 +307,24 @@ WORKDIR /workspace
         """Return path to grader.py, with fallback for local dev."""
         import importlib.util
 
+        # Prefer the local development grader.py in the source tree. When running
+        # Docker builds from the repo, we want to copy the source grader so that
+        # any local fixes (like adding /app/src to sys.path) are used inside the
+        # container even if the installed package on the host differs.
+        local_path = Path(__file__).parent / "resources" / "grader.py"
+        if local_path.exists():
+            return local_path
+
+        # Fallback to the grader shipped in the installed package (if present).
         spec = importlib.util.find_spec("instantgrade.evaluators.python.execution.resources")
         if spec and spec.origin:
             path = Path(spec.origin).parent / "grader.py"
             if path.exists():
                 return path
 
-        # fallback to local development path
-        local_path = Path(__file__).parent / "resources" / "grader.py"
-        if local_path.exists():
-            return local_path
-
         raise RuntimeError(
             "grader.py not found in instantgrade/execution/resources. "
-            "Ensure it exists and package_data includes it."
+            "Ensure it exists in source or package_data includes it."
         )
 
     # ------------------------------------------------------------------

@@ -169,9 +169,12 @@ class ReportingService:
         )
 
         # If best_n disabled, set best_n_total to 0 (or keep NaN -> we later check)
-        df["best_n_total"] = df["best_n_total"].fillna(0).astype(float)
+        # Ensure numeric types without triggering future pandas downcasting warnings.
+        # Use to_numeric(..., errors='coerce') to convert object columns to numeric,
+        # then fillna and cast to float.
+        df["best_n_total"] = pd.to_numeric(df["best_n_total"], errors="coerce").fillna(0.0).astype(float)
         # Scaled may be disabled; fill with 0 to avoid rendering 'nan' when not used
-        df["scaled"] = df["scaled"].fillna(0).astype(float)
+        df["scaled"] = pd.to_numeric(df["scaled"], errors="coerce").fillna(0.0).astype(float)
 
         # Student-level best across attempts (only meaningful when best_n is enabled)
         if not self.attempt_scores_df.empty and self.best_n:
@@ -222,6 +225,22 @@ class ReportingService:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         df = self.df.copy()
+        # If no rows were produced (e.g., Docker grading failed) or required
+        # grouping columns are missing, emit a minimal HTML report instead of
+        # raising KeyError. This keeps calling code (notebooks) robust when
+        # execution produced no results.
+        required = {"file", "student", "roll_number"}
+        if df.empty or not required.issubset(set(df.columns)):
+            # write a tiny HTML page explaining there are no results
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """<!doctype html><html><head><meta charset='utf-8'><title>No Results</title></head><body>"
+                    "<h1>No grading results</h1><p>No result rows were produced by the grader."
+                    " Check the execution logs for errors (Docker build/run or grader output).</p>"
+                    "</body></html>"""
+                )
+            return path
         # Defensive: ensure commonly-used columns exist so rendering never KeyErrors
         for _col, _default in (
             ("assertion", ""),

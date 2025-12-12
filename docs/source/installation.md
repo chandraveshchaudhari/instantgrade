@@ -1,160 +1,90 @@
+````markdown
 # Installation
 
-## Requirements
-
-InstantGrade requires Python 3.8 or higher. It supports:
-
-- Python 3.8
-- Python 3.9
-- Python 3.10
-- Python 3.11
-- Python 3.12
+This page explains how to install InstantGrade and prepare your environment for Docker-backed grading.
 
 ## Install from PyPI
 
-The easiest way to install InstantGrade is via pip:
+The easiest way to install InstantGrade is from PyPI:
 
 ```bash
-pip install instantgrade
+python3 -m pip install instantgrade
 ```
 
-This will install InstantGrade along with all required dependencies.
-
-## Install from Source
-
-To install the latest development version from GitHub:
-
-```bash
-# Clone the repository
-git clone https://github.com/chandraveshchaudhari/instantgrade.git
-cd instantgrade
-
-# Install in development mode
-pip install -e .
-```
-
-## Optional Dependencies
-
-### Excel Support (Windows)
-
-For enhanced Excel functionality on Windows, you can install xlwings:
-
-```bash
-pip install instantgrade[excel]
-```
-
-### Development Tools
-
-If you want to contribute or run tests:
-
-```bash
-pip install instantgrade[dev]
-```
-
-This includes:
-- pytest (testing)
-- black (code formatting)
-- flake8 (linting)
-- twine (package management)
-
-### Documentation Building
-
-To build documentation locally:
-
-```bash
-pip install instantgrade[docs]
-```
-
-### All Optional Dependencies
-
-To install everything:
-
-```bash
-pip install instantgrade[all]
-```
-
-## Verify Installation
-
-After installation, verify that InstantGrade is installed correctly:
+After installation you can run the CLI `instantgrade` or import the package in Python:
 
 ```python
 from instantgrade import Evaluator
-print("InstantGrade installed successfully!")
 ```
 
-Or using the command-line interface:
+## Development installation
+
+To work on the code locally (editable install):
 
 ```bash
-instantgrade --version
+git clone https://github.com/chandraveshchaudhari/instantgrade.git
+cd evaluator
+python3 -m pip install -e .
 ```
 
-## Dependencies
+This installs the package in "editable" mode so local changes to `src/` are reflected immediately.
 
-InstantGrade automatically installs these required packages:
+## Docker (recommended for grading notebooks)
 
-- **openpyxl** (≥3.0.0) - Excel file handling
-- **pandas** (≥1.0.0) - Data manipulation
-- **nbformat** (≥5.0.0) - Jupyter notebook format
-- **nbclient** (≥0.5.0) - Notebook execution
-- **click** (≥7.0) - Command-line interface
+InstantGrade executes student notebooks inside a Docker container by default. This provides consistent Python environments and prevents user code from affecting the host system.
 
-## Platform Support
+- Install Docker Desktop (macOS/Windows): https://www.docker.com/products/docker-desktop
+- Or install Docker Engine on Linux: https://docs.docker.com/engine/install/
 
-InstantGrade is tested on:
-
-- **Linux** (Ubuntu, Debian, etc.)
-- **macOS** (10.15+)
-- **Windows** (10, 11)
-
-## Troubleshooting
-
-### Import Error
-
-If you encounter import errors:
+After installation, verify Docker is available:
 
 ```bash
-# Reinstall the package
-pip uninstall instantgrade
-pip install --no-cache-dir instantgrade
+docker --version
 ```
 
-### Permission Errors
+If you plan to use Docker-backed grading (recommended for production or reproducible results), ensure the Docker daemon is running before invoking grading.
 
-On Linux/macOS, you might need to use `--user`:
+### Avoiding stale Docker images after an upgrade
+
+When users upgrade InstantGrade (for example after `pip install -U instantgrade`), previously-built Docker images (e.g. `instantgrade:latest`) on their machine may be out of sync with the new code. This can lead to errors such as `ModuleNotFoundError` inside the container.
+
+To avoid stale-image problems, do one of the following after upgrading:
+
+1. Build the repository-specific image (recommended):
 
 ```bash
-pip install --user instantgrade
+python tools/docker_build_image.py
+# or force rebuild
+python tools/docker_build_image.py --force
 ```
 
-Or use a virtual environment (recommended):
+This helper builds a docker image tagged with the current git commit short SHA and also tags it `instantgrade:latest` for convenience.
+
+2. Let the runtime rebuild automatically (one-off):
 
 ```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate it
-# On Linux/macOS:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
-
-# Install InstantGrade
-pip install instantgrade
+instantgrade_FORCE_REBUILD=1 instantgrade --solution sample_solutions.ipynb --submissions ./submissions/
 ```
 
-### Version Conflicts
+3. Developer fast-iteration: bind-mount the `src/` directory into your container while developing so you do not need to rebuild for small changes.
 
-If you have dependency conflicts:
+## Optional extras
+
+- For Excel-specific advanced features, install `xlwings`:
 
 ```bash
-# Create a fresh virtual environment
-python -m venv fresh_env
-source fresh_env/bin/activate  # or fresh_env\Scripts\activate on Windows
-pip install instantgrade
+python3 -m pip install xlwings
 ```
 
-## Next Steps
+- For development tools and tests:
 
-- Continue to the [Quick Start Guide](quickstart.md)
-- Read the [Usage Guide](usage.md)
-- Explore [Examples](examples.md)
+```bash
+python3 -m pip install -e .[dev]
+```
+
+## Next steps
+
+- See the Quick Start: `docs/quickstart` (or the website) for an end-to-end example.
+- If you're packaging a release, bump the version in `pyproject.toml`, tag a release on GitHub, and optionally build/publish the docker image in CI.
+
+````

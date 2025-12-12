@@ -102,6 +102,35 @@ cd evaluator
 python3 -m pip install -e .
 ```
 
+### Docker (recommended for notebook isolation)
+
+InstantGrade uses Docker to run student notebooks in an isolated environment. For the Docker-backed grading to work, users should install Docker Desktop (macOS/Windows) or Docker Engine (Linux).
+
+- Install Docker Desktop: https://www.docker.com/products/docker-desktop
+- After installing Docker, make sure the daemon is running before invoking grading with `use_docker=True`.
+
+When upgrading InstantGrade (new release), existing local Docker images named `instantgrade:latest` may be stale and could cause import or runtime errors inside the container. To avoid this, do one of the following after upgrading:
+
+- Prefetch a new image tagged to the current commit (recommended):
+
+```bash
+# from the repository root
+python tools/docker_build_image.py
+
+# to force a rebuild even if an image exists
+python tools/docker_build_image.py --force
+```
+
+- Or allow the runtime to rebuild automatically by setting the environment variable for a single run:
+
+```bash
+instantgrade_FORCE_REBUILD=1 instantgrade --solution sample_solutions.ipynb --submissions ./submissions/
+```
+
+- Developer fast-iteration option: bind-mount the `src` directory into the container so you don't need to rebuild the image on small changes.
+
+The repository ships a small helper at `tools/docker_build_image.py` that builds a git-SHA-tagged image (and also tags `instantgrade:latest` for convenience). This is the recommended step for administrators preparing a new release in their environment.
+
 ### Dependencies
 ##### Required
 - [pandas](https://pandas.pydata.org/) - Data manipulation and analysis for comparison results

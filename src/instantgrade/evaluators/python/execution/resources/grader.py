@@ -28,6 +28,16 @@ import json
 import os
 import sys
 import traceback
+from pathlib import Path as _Path
+
+# Ensure the project source is importable inside the Docker container regardless
+# of whether the package was installed via pip. This helps cases where the
+# build context or install step didn't populate site-packages as expected.
+# We prefer /app/src (the mounted/copy location used by the Dockerfile) and
+# fallback to /app. These are no-ops when imports already resolve.
+for _p in ("/app/src", "/app"):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
