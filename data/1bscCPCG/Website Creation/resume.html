@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prachi Shah — Portfolio</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Merriweather:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Core palette */
+      --bg-deep:#0f0b09;            /* deepest */
+      --bg-mid:#19120f;             /* forest floor */
+      --card:#0f2416; /* deep dark green card */               /* slightly lighter than background */
+      --card-contrast:#efe9e3;      /* used only if a white/backdrop appears */
+      --text-on-dark:#f6f3f0;       /* near-white for dark backgrounds */
+      --text-on-card:#2b1d17;       /* deep dark brown for card text */
+      --accent-moss:#6fa96a; /* brighter moss green */       /* moss green accent */
+      --muted:#9b8b7f;             /* secondary muted */
+      --radius:14px;
+      --max-width:1100px;
+      font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+    }
+
+    /* Reset & base */
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-mid),var(--bg-deep));color:var(--text-on-dark);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    a{color:inherit}
+
+    /* Subtle animated overlay of leaves/bugs using SVG pattern */
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.28;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='%236fa96a' fill-opacity='0.18'><circle cx='40' cy='60' r='6'/><circle cx='160' cy='140' r='5'/><path d='M20 200c10 4 18-6 22-12 4-6 10-4 14 0 4 4 8 10 16 10 10 0 16-8 22-12 6-4 14-2 18 0 0 0 8 4 14 10 6 6 12 10 20 10s16-6 22-10c6-4 14-4 20 0v40H0v-36z'/></g></svg>");background-repeat:repeat;background-size:240px 240px;mix-blend-mode:soft-light;animation:floatOverlay 35s linear infinite;}
+    @keyframes floatOverlay{0%{transform:translateY(0px)}50%{transform:translateY(-12px)}100%{transform:translateY(0px)}}
+
+    /* Top navigation */
+    .nav{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:linear-gradient(180deg,rgba(34,24,18,0.6),rgba(34,24,18,0.4));backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+    .nav a{color:var(--text-on-dark);text-decoration:none;font-weight:600;padding:8px 12px;border-radius:10px}
+    .nav a:hover{background:rgba(74,111,59,0.08);color:var(--accent-moss)}
+
+    /* Page container */
+    header.hero{min-height:78vh;display:grid;place-items:center;padding:64px 20px;position:relative;z-index:10}
+    .container{max-width:var(--max-width);margin:0 auto;padding:0 18px}
+
+    .hero-grid{display:grid;grid-template-columns:1fr 420px;gap:36px;align-items:center}
+    .intro-card{background:linear-gradient(180deg,var(--card),#1b1411);padding:30px;border-radius:var(--radius);box-shadow:0 18px 40px rgba(0,0,0,0.65);border:1px solid rgba(111,169,106,0.22);} 
+
+    h1{font-family:'Merriweather', serif;font-size:56px;margin:0;color:var(--text-on-dark);line-height:1}
+    .lead{margin-top:12px;color:var(--muted);font-size:16px;line-height:1.6}
+
+    .cta{margin-top:22px;display:flex;gap:12px}
+    .btn{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;border:0;cursor:pointer;font-weight:700}
+    .btn-primary{background:linear-gradient(180deg,var(--accent-moss),#3f5f33);color:#fff;box-shadow:0 10px 30px rgba(74,111,59,0.18)}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text-on-dark)}
+
+    .hero-aside{background:linear-gradient(180deg,#1e1512,var(--card));padding:18px;border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.02)}
+    .hero-aside img{width:100%;height:260px;object-fit:cover;border-radius:8px}
+    .hero-meta{display:flex;justify-content:space-between;margin-top:12px;color:var(--muted);font-weight:600}
+
+    /* Main content */
+    main{position:relative;z-index:20;margin-top:-20px}
+    section{margin-bottom:48px}
+
+    /* Projects slider */
+    .projects .slider{border-radius:12px;overflow:hidden}
+    .slides{display:flex;transition:transform 0.6s cubic-bezier(.2,.9,.2,1)}
+    .slide{min-width:100%;display:flex;gap:20px;padding:28px;background:linear-gradient(180deg,#231815,var(--card));align-items:center}
+    .proj-img{width:220px;height:140px;border-radius:10px;flex:0 0 220px;object-fit:cover;box-shadow:0 12px 30px rgba(0,0,0,0.6)}
+    .proj-title{font-weight:700;font-size:20px;margin:0;color:var(--text-on-dark)}
+    .proj-desc{margin-top:8px;color:var(--muted)}
+    .proj-links .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04)}
+
+    .slider-controls{position:absolute;top:50%;transform:translateY(-50%);left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none}
+    .control{pointer-events:auto;background:rgba(255,255,255,0.04);border-radius:999px;padding:8px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,0.6);color:var(--text-on-dark)}
+
+    /* Skills */
+    .skills{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    .skill{background:linear-gradient(180deg,var(--card),#1b1411);padding:16px;border-radius:10px;border:1px solid rgba(111,169,106,0.22);box-shadow:0 12px 30px rgba(0,0,0,0.55);} 
+    .skill h4{margin:0 0 8px 0;color:var(--text-on-dark)}
+    .meter{height:10px;background:#151111;border-radius:8px;overflow:hidden}
+    .meter > i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent-moss),#3f5f33)}
+
+    /* Experience */
+    .xp{display:grid;gap:14px}
+    .xp-item{background:linear-gradient(180deg,var(--card),#1b1411);padding:16px;border-radius:12px;border:1px solid rgba(111,169,106,0.18);box-shadow:0 18px 42px rgba(0,0,0,0.55);} 
+    .xp-meta{display:flex;justify-content:space-between;color:var(--muted);font-weight:600}
+    .metrics{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap}
+    .metric{background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:10px;font-weight:700;color:var(--text-on-dark)}
+
+    /* Education & contact */
+    .edu-card{background:linear-gradient(180deg,var(--card),#1b1411);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02);box-shadow:0 12px 30px rgba(0,0,0,0.5)}
+
+    footer{margin-top:40px;padding:28px;border-radius:12px;background:linear-gradient(180deg,#171211,var(--card));text-align:center;color:var(--muted)}
+
+    /* Ensure any light/backdrop uses dark text (brown or moss) for legibility */
+    .light-backdrop, .card-light {
+      background:var(--card-contrast); color:var(--text-on-card); /* dark brown */
+    }
+    .light-backdrop .accent, .card-light .accent{color:var(--accent-moss)}
+
+    /* Responsive adjustments */
+    @media (max-width:920px){
+      .hero-grid{grid-template-columns:1fr;gap:18px}
+      h1{font-size:42px}
+      .hero-aside img{height:200px}
+    }
+
+  </style>
+</head>
+<body>
+
+  <nav class="nav" aria-label="Primary Navigation">
+    <a href="#projects">Projects</a>
+    <a href="#skills">Skills</a>
+    <a href="#experience">Industry</a>
+    <a href="#education">Education</a>
+    <a href="#contact">Contact</a>
+    <a href="/mnt/data/Prachi Shah Resume .docx" style="border-left:1px solid rgba(255,255,255,0.04);padding-left:14px">Resume</a>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="intro-card">
+          <h1>Hello — I am PRACHI</h1>
+          <p class="lead">I pursue Economics with a quantitative lens. My work emphasises numerical clarity: reproducible Excel dashboards, policy-facing economic analysis, and data-driven visual storytelling. I prioritise clear metrics, defensible assumptions and concise recommendations.</p>
+
+          <div class="cta">
+            <button class="btn btn-primary" onclick="document.querySelector('#projects').scrollIntoView({behavior:'smooth'})">Explore</button>
+            <a class="btn btn-ghost" href="#contact">Contact</a>
+          </div>
+        </div>
+
+        <aside class="hero-aside">
+          <img src="https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=1400&auto=format&fit=crop&s=placeholder" alt="profile visual" />
+          <div class="hero-meta">
+            <div style="color:var(--text-on-dark);font-weight:700">B.Sc. Economics with Data Science · Christ University</div>
+            <div style="color:var(--muted)">GPA(Sem 1): 3.72 / 4.0</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Projects -->
+    <section id="projects">
+      <h2 style="color:var(--text-on-dark);margin-top:0">Projects — selected quantitative work</h2>
+      <div class="projects">
+        <div class="slider" style="position:relative">
+          <div class="slides" id="slides">
+
+            <!-- Slide 1 -->
+            <article class="slide" aria-label="Project 1">
+              <img class="proj-img" src="https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=1200&auto=format&fit=crop&s=placeholder" alt="dashboard screenshot">
+              <div>
+                <h3 class="proj-title">Advanced Excel Dashboard — Labour Market Insights</h3>
+                <p class="proj-desc">Dynamic pivot-driven analysis, scenario toggles and VBA routines. Includes KPIs: unemployment decomposition, elasticity estimates and monthly trend visualisations.</p>
+                <div class="proj-links" style="margin-top:12px">
+                  <a class="btn btn-ghost" href="#" onclick="alert('Replace with your GitHub link')">View repository</a>
+                </div>
+              </div>
+            </article>
+
+            <!-- Slide 2 -->
+            <article class="slide" aria-label="Project 2">
+              <img class="proj-img" src="https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?q=80&w=1200&auto=format&fit=crop&s=placeholder" alt="excel charts">
+              <div>
+                <h3 class="proj-title">Survey Analytics (Power Query)</h3>
+                <p class="proj-desc">Processed 2,400+ survey responses with Power Query; calculated weighted estimates and uncertainty intervals, producing an interactive dashboard.</p>
+                <div class="proj-links" style="margin-top:12px">
+                  <a class="btn btn-ghost" href="#" onclick="alert('Replace with your dashboard link')">Open dashboard</a>
+                </div>
+              </div>
+            </article>
+
+            <!-- Slide 3 -->
+            <article class="slide" aria-label="Project 3">
+              <img class="proj-img" src="https://images.unsplash.com/photo-1526378722013-495d0e6d85c9?q=80&w=1200&auto=format&fit=crop&s=placeholder" alt="economics model">
+              <div>
+                <h3 class="proj-title">Cost-Benefit Analysis — Urban Drainage</h3>
+                <p class="proj-desc">NPV, sensitivity analysis and Monte Carlo stress tests on maintenance and runoff scenarios. Includes actionable numeric thresholds for policy prioritisation.</p>
+                <div class="proj-links" style="margin-top:12px">
+                  <a class="btn btn-ghost" href="#" onclick="alert('Replace with GitHub link')">GitHub</a>
+                </div>
+              </div>
+            </article>
+
+          </div>
+
+          <div class="slider-controls">
+            <div class="control" id="prev">◀</div>
+            <div class="control" id="next">▶</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skills -->
+    <section id="skills">
+      <h2 style="color:var(--text-on-dark)">Skillset</h2>
+      <div class="skills">
+        <div class="skill">
+          <h4>Advanced Microsoft Excel</h4>
+          <div style="color:var(--muted)">Functions, PivotTables, Power Query, Power Pivot, VBA automation</div>
+          <div style="margin-top:8px" class="meter"><i style="width:92%"></i></div>
+        </div>
+        <div class="skill">
+          <h4>Data Analysis & Visualisation</h4>
+          <div style="color:var(--muted)">Descriptive statistics, dashboards, reproducible reporting</div>
+          <div style="margin-top:8px" class="meter"><i style="width:84%"></i></div>
+        </div>
+        <div class="skill">
+          <h4>Python (Foundational)</h4>
+          <div style="color:var(--muted)">Pandas, basic data workflows; applied in club projects</div>
+          <div style="margin-top:8px" class="meter"><i style="width:56%"></i></div>
+        </div>
+        <div class="skill">
+          <h4>Research & Writing</h4>
+          <div style="color:var(--muted)">Policy briefs, timed deliverables, structured arguments</div>
+          <div style="margin-top:8px" class="meter"><i style="width:80%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Experience -->
+    <section id="experience">
+      <h2 style="color:var(--text-on-dark)">Industry & Leadership Experience</h2>
+      <div class="xp">
+
+        <div class="xp-item">
+          <div class="xp-meta"><div style="color:var(--text-on-dark);font-weight:700">Young Changemakers — IIM Ranchi</div><div style="color:var(--muted)">Dec 2024</div></div>
+          <p style="margin:8px 0;color:var(--muted)">Team-based real-world problem solving under strict deadlines. Focused on quantitative diagnostics and delivering a slide-backed recommendation.</p>
+          <div class="metrics">
+            <div class="metric">Team Size: 5</div>
+            <div class="metric">Deliverable: 10-slide policy brief</div>
+            <div class="metric">Outcome: Top 6 teams (quantitative ranking)</div>
+          </div>
+        </div>
+
+        <div class="xp-item">
+          <div class="xp-meta"><div style="color:var(--text-on-dark);font-weight:700">Head Girl — Eklavya Global School</div><div style="color:var(--muted)">2024</div></div>
+          <p style="margin:8px 0;color:var(--muted)">Led student activities and organised events for 100+ teachers and staff. Responsible for scheduling, logistics and post-event reporting with attendance metrics.</p>
+          <div class="metrics">
+            <div class="metric">Event scale: 100+ staff</div>
+            <div class="metric">Reports: Attendance + feedback collection</div>
+            <div class="metric">Efficiency gains: Reduced setup time by estimated 18%</div>
+          </div>
+        </div>
+
+        <div class="xp-item">
+          <div class="xp-meta"><div style="color:var(--text-on-dark);font-weight:700">Literary Committee — Student Welfare Office</div><div style="color:var(--muted)">Ongoing</div></div>
+          <p style="margin:8px 0;color:var(--muted)">Produced time-sensitive content under administrative standards and handled coordination between students and staff.</p>
+          <div class="metrics">
+            <div class="metric">Pieces published: 15+</div>
+            <div class="metric">Turnaround: 24–48 hours</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Education -->
+    <section id="education">
+      <h2 style="color:var(--text-on-dark)">Education</h2>
+      <div class="edu-card">
+        <strong style="color:var(--text-on-dark)">Christ (Deemed to be University), BRC Campus</strong>
+        <div style="color:var(--muted)">B.Sc. Economics, Mathematics and Statistics — First Year</div>
+        <div style="color:var(--text-on-dark)">Expected GPA (Sem 1): <strong>3.9 / 4.0</strong></div>
+      </div>
+    </section>
+
+    <!-- Contact / Conclusion -->
+    <section id="contact">
+      <h2 style="color:var(--text-on-dark)">Contact & Closing</h2>
+      <div class="edu-card">
+        <p style="margin:0 0 8px 0;color:var(--muted)">For code, dashboards and collaboration enquiries, contact:</p>
+        <div style="font-weight:700;color:var(--text-on-dark)">Email: findprachishah@gmail.com · Phone: +91 9316659067</div>
+        <p style="margin-top:12px;color:var(--muted)">Replace placeholder links with your GitHub repositories or hosted dashboards. The resume link in the navigation references the local path: <code style="color:var(--muted)">/mnt/data/Prachi Shah Resume .docx</code>. Upload the file when deploying and update the link.</p>
+      </div>
+    </section>
+
+    <footer>
+      <div>© Prachi Shah — Data-driven economic analysis · Designed for clarity and legibility</div>
+    </footer>
+
+  </main>
+
+  <script>
+    // Slider logic
+    (function(){
+      const slides = document.getElementById('slides');
+      const total = slides.children.length;
+      let index = 0;
+
+      function show(i){
+        index = (i + total) % total;
+        slides.style.transform = `translateX(${-index * 100}%)`;
+      }
+
+      document.getElementById('prev').addEventListener('click', ()=> show(index - 1));
+      document.getElementById('next').addEventListener('click', ()=> show(index + 1));
+
+      // Keyboard support
+      window.addEventListener('keyup', e=>{
+        if(e.key === 'ArrowLeft') show(index - 1);
+        if(e.key === 'ArrowRight') show(index + 1);
+      });
+
+      // Auto-advance
+      let auto = setInterval(()=> show(index + 1), 8000);
+      ["prev","next"].forEach(id => document.getElementById(id).addEventListener('click', ()=>{clearInterval(auto);auto = setInterval(()=> show(index + 1), 10000);}));
+
+      if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+        clearInterval(auto);
+      }
+
+      // Ensure initial layout
+      show(0);
+    })();
+  </script>
+
+</body>
+</html>
