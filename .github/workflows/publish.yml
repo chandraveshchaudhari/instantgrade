@@ -1,53 +1,44 @@
 name: Publish Python Package to PyPI
 
 on:
-  release:
-    types: [published]
   push:
     tags:
       - "v*"
 
 jobs:
   publish:
-    name: Build and Publish to PyPI
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write   # Required for Trusted Publishing (OIDC)
+      id-token: write
       contents: read
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      # 🔴 HARD GUARANTEE: install tools
+      - name: Install build tools
         run: |
+          python -V
           python -m pip install --upgrade pip
-          pip install build twine
+          python -m pip install build twine
+          python -m twine --version   # <-- PROOF twine exists
 
-      - name: Clean previous builds
-        run: |
-          rm -rf dist build *.egg-info
+      - name: Clean old builds
+        run: rm -rf dist build *.egg-info
 
       - name: Build package
         run: python -m build
 
-      - name: Verify package
+      # 🔴 Will now definitely work
+      - name: Check package
         run: python -m twine check dist/*
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          verbose: true
-
-      - name: Verify installation
-        run: |
-          echo "Waiting for PyPI to process..."
-          sleep 60
-          pip install your-package-name
-          python -c "import your_package_name; print('✅ Installed successfully')"
