@@ -126,6 +126,24 @@ def run_and_store(solution_path: str, submissions_path: str, use_docker: bool, b
             pass
 
 
+def list_runs():
+    _ensure_runs_dir()
+    runs = []
+    for d in sorted(RUNS_DIR.iterdir(), reverse=True):
+        meta_file = d / "meta.json"
+        if meta_file.exists():
+            try:
+                with open(meta_file, "r", encoding="utf8") as fh:
+                    meta = json.load(fh)
+            except Exception:
+                meta = {}
+        else:
+            meta = {}
+        runs.append({"id": d.name, "dir": str(d), "meta": meta})
+    return runs
+ 
+
+
 def main():
     st.title("InstantGrade — Web UI")
 
@@ -223,6 +241,9 @@ def main():
                 with open(out_log, "rb") as lf:
                     st.download_button("Download run log", lf, file_name=f"instantgrade_runlog_{res['run_dir'].split(os.sep)[-1]}.txt")
 
+        except Exception as e:
+            st.exception(e)
+
     # --- Runs history ---
     st.markdown("---")
     st.header("Previous runs")
@@ -248,9 +269,7 @@ def main():
         if logp and Path(logp).exists():
             with open(logp, 'rb') as lf:
                 st.download_button("Download selected run log", lf, file_name=Path(logp).name)
-
-        except Exception as e:
-            st.exception(e)
+        
 
 
 if __name__ == "__main__":
