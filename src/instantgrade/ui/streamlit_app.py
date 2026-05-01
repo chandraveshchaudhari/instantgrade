@@ -157,6 +157,9 @@ def main():
         st.markdown("**Student submissions input**")
         sub_upload = st.file_uploader("Upload student notebook(s) (optional, multiple allowed)", type=["ipynb"], accept_multiple_files=True)
         submissions_path = st.text_input("Or provide submissions folder/file path on server", value="", help="Path to student notebook or submissions directory")
+        st.markdown(
+            "**Upload options:** Use the file uploader to select multiple `.ipynb` files (Ctrl/Cmd+click) to upload a folder's contents without zipping, or paste a server path to the submissions folder. Uploading a ZIP is also supported and will be extracted."
+        )
 
         use_docker = st.selectbox("Execution mode", ["docker", "local"], index=0) == "docker"
         best_n_raw = st.number_input("Best-N (optional)", min_value=0, value=0, step=1)
@@ -174,13 +177,31 @@ def main():
                 solp = solution_path.strip()
 
             # Decide submissions: uploaded files -> save to temp dir; or use provided path
-            if sub_upload and len(sub_upload) > 0:
-                tmp_sub_dir = Path(tempfile.mkdtemp(prefix="instantgrade_subs_"))
-                for f in sub_upload:
-                    outf = tmp_sub_dir / f.name
-                    with open(outf, "wb") as fh:
-                        fh.write(f.getbuffer())
-                subp = str(tmp_sub_dir)
+                if sub_upload and len(sub_upload) > 0:
+                    tmp_sub_dir = Path(tempfile.mkdtemp(prefix="instantgrade_subs_"))
+                    # Support uploading multiple notebooks or a single ZIP archive containing a submissions folder
+                    for f in sub_upload:
+                        outf = tmp_sub_dir / f.name
+                        with open(outf, "wb") as fh:
+                            fh.write(f.getbuffer())
+                        # if a zip was uploaded, extract it
+                        if f.name.lower().endswith('.zip'):
+                            try:
+                                import zipfile
+
+                                with zipfile.ZipFile(outf, 'r') as zf:
+                                    zf.extractall(tmp_sub_dir)
+                                    # remove the zip after extraction
+                                outf.unlink()
+                            except Exception:
+                                pass
+                    # If upload produced a single folder inside tmp_sub_dir, use that
+                    # otherwise use tmp_sub_dir itself
+                    children = [p for p in tmp_sub_dir.iterdir() if p.exists()]
+                    if len(children) == 1 and children[0].is_dir():
+                        subp = str(children[0])
+                    else:
+                        subp = str(tmp_sub_dir)
             else:
                 subp = submissions_path.strip()
 
