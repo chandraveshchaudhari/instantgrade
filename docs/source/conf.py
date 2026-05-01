@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath("../../src"))
 project = "InstantGrade"
 copyright = "2025, Chandravesh Chaudhari"
 author = "Chandravesh Chaudhari"
-release = "0.1.0"
+release = "0.1.19"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -9,6 +9,7 @@ Responsibilities:
 """
 
 import time
+import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -209,20 +210,32 @@ class Evaluator:
 
         comparison_svc = ComparisonService()
 
-        # Build assertion list from solution questions
-        assertions_list = []
-        for question_name, question_data in self.solution.get("questions", {}).items():
-            for assertion_code in question_data.get("tests", []):
-                assertions_list.append(
-                    {
-                        "code": assertion_code,
-                        "question": question_name,
-                        "description": question_data.get("description", ""),
-                    }
+        def _has_supporting_data(directory: Path) -> bool:
+            patterns = ("*.csv", "*.json", "*.xlsx", "*.xls", "*.txt")
+            return any(any(directory.glob(pattern)) for pattern in patterns)
+
+        working_dir = submission_path.parent
+        if not _has_supporting_data(working_dir) and _has_supporting_data(self.solution_path.parent):
+            working_dir = self.solution_path.parent
+
+        results = []
+        working_namespace = dict(ns)
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(working_dir)
+            for question_name, question_data in self.solution.get("questions", {}).items():
+                question_results = comparison_svc.run_assertions(
+                    assertions=question_data.get("tests", []),
+                    namespace=working_namespace,
+                    question_name=question_name,
+                    context_code=question_data.get("context_code", ""),
                 )
 
-        # Run all assertions
-        results = comparison_svc.run_assertions(assertions_list, ns)
+                for result in question_results:
+                    result["description"] = question_data.get("description", "")
+                results.extend(question_results)
+        finally:
+            os.chdir(original_cwd)
 
         return {
             "student_path": submission_path,

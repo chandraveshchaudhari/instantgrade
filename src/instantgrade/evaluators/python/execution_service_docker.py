@@ -1,4 +1,5 @@
 import json
+import hashlib
 import shutil
 import subprocess
 import tempfile
@@ -44,6 +45,7 @@ class ExecutionServiceDocker:
         self.network_mode = network_mode
         self.debug = debug
         self.logger = logger or setup_logger(level="normal")
+        self._prepared_image_tag: str | None = None
 
     # ------------------------------------------------------------------
     def execute_student(self, solution_path: Path, submission_path: Path) -> Dict[str, Any]:
@@ -61,6 +63,7 @@ class ExecutionServiceDocker:
             # Copy required files into workspace
             shutil.copy(submission_path, tmpdir_path / "student.ipynb")
             shutil.copy(solution_path, tmpdir_path / "solution.ipynb")
+            self._copy_supporting_files(solution_path, submission_path, tmpdir_path)
 
             grader_path = self._get_grader_source()
             shutil.copy(grader_path, tmpdir_path / "grader.py")
@@ -189,11 +192,23 @@ class ExecutionServiceDocker:
         """
         import importlib.util
 
-        # If possible, compute a git-based tag so images are tied to source.
+        spec = importlib.util.find_spec("instantgrade")
+        if not spec or not spec.origin:
+            raise RuntimeError("Could not locate 'instantgrade' package on host.")
+
+        package_root = Path(spec.origin).parent.parent  # /src/instantgrade/ → /src
+        project_root = package_root.parent  # repo root
+
+        # Compute an image tag tied to both git state and current source contents
+        # so uncommitted local fixes invalidate stale cached images automatically.
         try:
-            package_root = Path(__file__).parent.parent.parent.parent
-            git_sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=package_root, text=True).strip()
-            image_tag = f"instantgrade:{git_sha}"
+            git_sha = subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=project_root,
+                text=True,
+            ).strip()
+            source_fingerprint = self._compute_source_fingerprint(project_root, package_root)
+            image_tag = f"instantgrade:{git_sha}-{source_fingerprint}"
         except Exception:
             # Fallback to the configured docker_image tag
             image_tag = self.docker_image
@@ -212,22 +227,17 @@ class ExecutionServiceDocker:
 
         effective_force_rebuild = force_rebuild or env_force or bool(self.debug)
 
+        if self._prepared_image_tag == image_tag and not force_rebuild:
+            self.docker_image = image_tag
+            return
+
         if result.stdout.strip() and not effective_force_rebuild:
             # Image already exists and rebuild not requested — reuse it.
             # Ensure we use the git-tagged image name for subsequent runs.
             self.docker_image = image_tag
+            self._prepared_image_tag = image_tag
             return
         self.logger.info(f"[Docker] Building image {image_tag} from {self.base_image}...")
-
-        # ----------------------------------------------------------------------
-        # 1. Locate instantgrade package source
-        # ----------------------------------------------------------------------
-        spec = importlib.util.find_spec("instantgrade")
-        if not spec or not spec.origin:
-            raise RuntimeError("Could not locate 'instantgrade' package on host.")
-
-        package_root = Path(spec.origin).parent.parent  # /src/instantgrade/ → /src
-        project_root = package_root.parent  # /evaluator (repo root)
 
         # Determine installation method
         use_pyproject = (project_root / "pyproject.toml").exists() or (
@@ -296,11 +306,34 @@ WORKDIR /workspace
                     pass
                 # Update the instance docker_image to the built tag
                 self.docker_image = image_tag
+                self._prepared_image_tag = image_tag
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"[Docker] Build failed: {e}")
                 raise
 
         self.logger.info(f"[Docker] Built image {self.docker_image} successfully.")
+
+    # ------------------------------------------------------------------
+    def _compute_source_fingerprint(self, project_root: Path, package_root: Path) -> str:
+        digest = hashlib.sha256()
+        paths_to_hash = []
+
+        pyproject = project_root / "pyproject.toml"
+        if pyproject.exists():
+            paths_to_hash.append(pyproject)
+
+        setup_py = project_root / "setup.py"
+        if setup_py.exists():
+            paths_to_hash.append(setup_py)
+
+        paths_to_hash.extend(sorted(package_root.rglob("*.py")))
+
+        for path in paths_to_hash:
+            relative = path.relative_to(project_root if path.is_relative_to(project_root) else package_root)
+            digest.update(str(relative).encode("utf-8"))
+            digest.update(path.read_bytes())
+
+        return digest.hexdigest()[:12]
 
     # ------------------------------------------------------------------
     def _get_grader_source(self) -> Path:
@@ -325,6 +358,41 @@ WORKDIR /workspace
         raise RuntimeError(
             "grader.py not found in instantgrade/execution/resources. "
             "Ensure it exists in source or package_data includes it."
+        )
+
+    # ------------------------------------------------------------------
+    def _copy_supporting_files(
+        self,
+        solution_path: Path,
+        submission_path: Path,
+        workspace_path: Path,
+    ) -> None:
+        """Copy non-notebook supporting files needed at runtime into the Docker workspace."""
+
+        def copy_from_directory(directory: Path, *, skip_names: set[str]) -> None:
+            if not directory.exists() or not directory.is_dir():
+                return
+
+            for item in directory.iterdir():
+                if item.name in skip_names:
+                    continue
+
+                destination = workspace_path / item.name
+                if item.is_file():
+                    if item.suffix.lower() == ".ipynb":
+                        continue
+                    if not destination.exists():
+                        shutil.copy2(item, destination)
+                elif item.is_dir():
+                    shutil.copytree(item, destination, dirs_exist_ok=True)
+
+        copy_from_directory(
+            solution_path.parent,
+            skip_names={solution_path.name, submission_path.name, "grader.py", "results.json"},
+        )
+        copy_from_directory(
+            submission_path.parent,
+            skip_names={solution_path.name, submission_path.name, "grader.py", "results.json"},
         )
 
     # ------------------------------------------------------------------

@@ -1,90 +1,116 @@
-````markdown
 # Installation
 
-This page explains how to install InstantGrade and prepare your environment for Docker-backed grading.
+This page explains how to install InstantGrade, when Docker is required, and how to choose between local and Docker-backed notebook grading.
 
 ## Install from PyPI
 
-The easiest way to install InstantGrade is from PyPI:
+The simplest installation is from PyPI:
 
 ```bash
 python3 -m pip install instantgrade
 ```
 
-After installation you can run the CLI `instantgrade` or import the package in Python:
-
-```python
-from instantgrade import Evaluator
-```
-
-## Development installation
-
-To work on the code locally (editable install):
+After installation, launch the UI with:
 
 ```bash
-git clone https://github.com/chandraveshchaudhari/instantgrade.git
-cd evaluator
-python3 -m pip install -e .
+instantgrade launch
 ```
 
-This installs the package in "editable" mode so local changes to `src/` are reflected immediately.
+If port `8501` is already in use, InstantGrade automatically falls back to the next free port and prints the final URL.
 
-## Docker (recommended for grading notebooks)
+## Choose an execution mode
 
-InstantGrade executes student notebooks inside a Docker container by default. This provides consistent Python environments and prevents user code from affecting the host system.
+### Local mode
 
-- Install Docker Desktop (macOS/Windows): https://www.docker.com/products/docker-desktop
-- Or install Docker Engine on Linux: https://docs.docker.com/engine/install/
+Use local mode when:
 
-After installation, verify Docker is available:
+- Docker is not installed
+- Docker is installed but the daemon is not running
+- You want notebook execution to use the current Python environment directly
+
+Local mode does not require Docker.
+
+### Docker mode
+
+Use Docker mode when:
+
+- You want isolated notebook execution
+- You want more reproducible grading across machines
+- Student notebooks depend on an execution sandbox separate from the host
+
+Docker mode requires Docker to be installed and available.
+
+## Install Docker for Docker mode
+
+- macOS and Windows: install Docker Desktop from https://www.docker.com/products/docker-desktop
+- Linux: install Docker Engine from https://docs.docker.com/engine/install/
+
+Verify that Docker is installed and running:
 
 ```bash
 docker --version
+docker info
 ```
 
-If you plan to use Docker-backed grading (recommended for production or reproducible results), ensure the Docker daemon is running before invoking grading.
+If these commands fail, use local execution instead of Docker execution.
 
-### Avoiding stale Docker images after an upgrade
+## Development installation
 
-When users upgrade InstantGrade (for example after `pip install -U instantgrade`), previously-built Docker images (e.g. `instantgrade:latest`) on their machine may be out of sync with the new code. This can lead to errors such as `ModuleNotFoundError` inside the container.
-
-To avoid stale-image problems, do one of the following after upgrading:
-
-1. Build the repository-specific image (recommended):
+To work on the code locally in editable mode:
 
 ```bash
-python tools/docker_build_image.py
-# or force rebuild
-python tools/docker_build_image.py --force
+git clone https://github.com/chandraveshchaudhari/instantgrade.git
+cd instantgrade
+python3 -m pip install -e .
 ```
 
-This helper builds a docker image tagged with the current git commit short SHA and also tags it `instantgrade:latest` for convenience.
-
-2. Let the runtime rebuild automatically (one-off):
-
-```bash
-instantgrade_FORCE_REBUILD=1 instantgrade --solution sample_solutions.ipynb --submissions ./submissions/
-```
-
-3. Developer fast-iteration: bind-mount the `src/` directory into your container while developing so you do not need to rebuild for small changes.
+This reflects changes in `src/` immediately without reinstalling the package.
 
 ## Optional extras
 
-- For Excel-specific advanced features, install `xlwings`:
+Install Excel extras:
 
 ```bash
 python3 -m pip install xlwings
 ```
 
-- For development tools and tests:
+Install development dependencies:
 
 ```bash
 python3 -m pip install -e .[dev]
 ```
 
+## Docker image refresh after upgrades
+
+When you upgrade InstantGrade, older local Docker images can become stale. If Docker mode behaves as if it is still running older code, rebuild the image.
+
+### Repository workflow
+
+From a cloned repository:
+
+```bash
+python tools/docker_build_image.py
+python tools/docker_build_image.py --force
+```
+
+### Runtime rebuild workflow
+
+For a one-off rebuild during execution:
+
+```bash
+instantgrade_FORCE_REBUILD=1 instantgrade launch
+```
+
+## What gets installed
+
+After installation you can:
+
+- Run `instantgrade launch` to open the UI
+- Import `InstantGrader` or evaluator classes from Python
+- Grade notebooks locally or in Docker
+- Grade Excel submissions with the Excel evaluator
+
 ## Next steps
 
-- See the Quick Start: `docs/quickstart` (or the website) for an end-to-end example.
-- If you're packaging a release, bump the version in `pyproject.toml`, tag a release on GitHub, and optionally build/publish the docker image in CI.
-
-````
+- Continue with the Quick Start for the first end-to-end grading flow
+- Read the Usage Guide for UI features, uploads, and grading workflows

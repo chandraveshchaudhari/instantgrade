@@ -73,13 +73,18 @@ The framework was created to streamline the grading process for programming and 
 
 
 ## Features
-- **Automated Evaluation**: Compare student submissions against instructor solutions automatically
-- **Multiple File Format Support**: Currently supports Python Jupyter notebooks (.ipynb) and Excel files (.xlsx, .xls)
-- **Comprehensive Reporting**: Generate detailed HTML reports with visual feedback and scoring
-- **AST Analysis**: Deep code comparison using Abstract Syntax Tree analysis for Python code
-- **Flexible Configuration**: Customizable evaluation criteria through JSON configuration
-- **Batch Processing**: Evaluate multiple student submissions in one run
-- **Extensible Architecture**: Easy to add support for new file types and evaluation strategies
+- **Launchable Web UI**: Start the Streamlit interface with `instantgrade launch` after `pip install instantgrade`
+- **Smart Port Fallback**: If port `8501` is busy, the launcher automatically selects the next free port
+- **Notebook Grading**: Grade Python `.ipynb` submissions against an instructor solution notebook
+- **Excel Grading**: Grade Excel assignments (`.xlsx`, `.xls`, `.xlsm`) with the Excel evaluator
+- **Multiple Submission Uploads**: Upload one instructor notebook and multiple student notebooks in the UI
+- **Additional Data File Uploads**: Upload supporting files such as `.csv`, `.json`, `.txt`, and spreadsheet assets needed by notebooks
+- **ZIP Upload Support**: Upload zipped submissions or zipped supporting files and let the UI extract them
+- **Local or Docker Execution**: Use local execution when Docker is unavailable, or Docker isolation when Docker is installed and running
+- **Student Notebook Generation**: Generate a student-facing notebook template from an instructor solution notebook
+- **Run History and Downloads**: Review saved runs and download HTML reports, PDF reports, and execution logs
+- **Comprehensive Reporting**: Generate detailed HTML reports with scoring and per-assertion feedback
+- **Extensible Architecture**: Add new evaluator types without changing the main routing API
 
 #### Significance
 - **Time-Saving**: Reduces manual grading effort by 90% for programming assignments
@@ -88,28 +93,55 @@ The framework was created to streamline the grading process for programming and 
 - **Scalability**: Handles large classes with hundreds of submissions efficiently
 - **Educational Focus**: Allows instructors to focus on teaching rather than repetitive grading tasks
 
-## Installation 
-This project is available at [PyPI](https://pypi.org/project/instantgrade/). For help in installation check 
-[instructions](https://packaging.python.org/tutorials/installing-packages/#installing-from-pypi)
+## Installation
+This project is available at [PyPI](https://pypi.org/project/instantgrade/).
+
+### Install from PyPI
 ```bash
 python3 -m pip install instantgrade  
 ```
 
-For development installation:
+After installation you can launch the UI directly:
+
+```bash
+instantgrade launch
+```
+
+If port `8501` is already in use, InstantGrade will try the next available port automatically and print the actual URL.
+
+### Local-only usage
+
+You do **not** need Docker to use InstantGrade in local mode.
+
+- Use local mode when Docker is not installed
+- Use local mode when Docker Desktop or Docker Engine is installed but not running
+- In the UI, choose local execution for notebook grading when you want everything to run on the host Python environment
+
+### Docker-backed notebook grading
+
+Docker is required only when you want isolated notebook execution.
+
+- Install Docker Desktop on macOS or Windows: https://www.docker.com/products/docker-desktop
+- Install Docker Engine on Linux: https://docs.docker.com/engine/install/
+- Make sure Docker is installed and the daemon is running before using Docker mode in the UI or `use_docker=True` in Python
+
+Verify Docker availability:
+
+```bash
+docker --version
+docker info
+```
+
+If Docker is unavailable, switch to local execution instead of Docker execution.
+
+### Development installation
 ```bash
 git clone https://github.com/chandraveshchaudhari/instantgrade.git
-cd evaluator
+cd instantgrade
 python3 -m pip install -e .
 ```
 
-### Docker (recommended for notebook isolation)
-
-InstantGrade uses Docker to run student notebooks in an isolated environment. For the Docker-backed grading to work, users should install Docker Desktop (macOS/Windows) or Docker Engine (Linux).
-
-- Install Docker Desktop: https://www.docker.com/products/docker-desktop
-- After installing Docker, make sure the daemon is running before invoking grading with `use_docker=True`.
-
-When upgrading InstantGrade (new release), existing local Docker images named `instantgrade:latest` may be stale and could cause import or runtime errors inside the container. To avoid this, do one of the following after upgrading:
+When upgrading InstantGrade, existing local Docker images may be stale. To avoid runtime mismatches inside containers, do one of the following after upgrading:
 
 - Prefetch a new image tagged to the current commit (recommended):
 
@@ -121,13 +153,13 @@ python tools/docker_build_image.py
 python tools/docker_build_image.py --force
 ```
 
-- Or allow the runtime to rebuild automatically by setting the environment variable for a single run:
+- Or allow the runtime to rebuild automatically for a single run:
 
 ```bash
-instantgrade_FORCE_REBUILD=1 instantgrade --solution sample_solutions.ipynb --submissions ./submissions/
+instantgrade_FORCE_REBUILD=1 instantgrade launch
 ```
 
-- Developer fast-iteration option: bind-mount the `src` directory into the container so you don't need to rebuild the image on small changes.
+- Developer fast-iteration option: bind-mount the `src` directory into the container so you do not need to rebuild the image on small changes.
 
 The repository ships a small helper at `tools/docker_build_image.py` that builds a git-SHA-tagged image (and also tags `instantgrade:latest` for convenience). This is the recommended step for administrators preparing a new release in their environment.
 
@@ -144,40 +176,75 @@ The repository ships a small helper at `tools/docker_build_image.py` that builds
 
 ## Usage
 
-### Basic Usage
+### Launch the UI
 
-#### Python API
-```python
-from instantgrade import Evaluator
-
-# Initialize evaluator with solution and submissions folder
-evaluator = Evaluator(
-    solution_file_path="path/to/solution.ipynb",
-    submission_folder_path="path/to/submissions/"
-)
-
-# Run complete evaluation pipeline
-report = evaluator.run()
+```bash
+instantgrade launch
 ```
 
-#### Command Line Interface
-```bash
-# Evaluate Python notebook submissions
-instantgrade --solution sample_solutions.ipynb --submissions ./submissions/ --output ./report/
+The UI supports these workflows:
 
-# Evaluate Excel submissions
-instantgrade --solution solution.xlsx --submissions ./excel_submissions/ --output ./excel_report/
+- Upload one instructor `.ipynb` notebook
+- Upload multiple student notebooks in one run
+- Upload additional supporting files such as datasets and other assets
+- Use local execution or Docker execution
+- Generate a student notebook from the instructor solution notebook
+- Review previous runs and download saved artifacts
+
+### Python API
+
+```python
+from instantgrade import InstantGrader
+
+# Grade notebooks locally
+grader = InstantGrader(
+   solution_file_path="path/to/solution.ipynb",
+   submission_folder_path="path/to/submissions/",
+   use_docker=False,
+)
+
+report = grader.run()
+report.to_html("reports/report.html")
+```
+
+### Python API with Docker
+
+```python
+from instantgrade import InstantGrader
+
+grader = InstantGrader(
+   solution_file_path="path/to/solution.ipynb",
+   submission_folder_path="path/to/submissions/",
+   use_docker=True,
+)
+
+report = grader.run()
+```
+
+### Instructor notebook pattern for Python grading
+
+For Python notebook grading, the instructor solution notebook should follow this pattern:
+
+- A markdown cell starting with `##` defines a question
+- The next code cell contains the reference function or solution code
+- The following code cell contains setup code and `assert` statements used for grading
+
+Assertions written as `assert actual == expected` produce the most useful diagnostics.
+
+### Example commands
+```bash
+instantgrade launch --port 8501
 ```
 
 ## Supported File Types
 
 ### Python Jupyter Notebooks (.ipynb)
-- Executes code cells and compares outputs
-- AST-based code structure comparison
-- Variable and function definition verification
-- Exception and error handling analysis
+- Executes notebooks locally or in Docker
+- Uses question setup code plus assertion-based grading
+- Resolves supporting dataset files placed with the solution or submission bundle
+- Produces detailed per-question pass/fail results and identity checks
 
-### Excel Files (.xlsx, .xls)
+### Excel Files (.xlsx, .xls, .xlsm)
 - Cell value comparison across worksheets
 - Formula evaluation and verification
 - Conditional formatting checks
@@ -190,8 +257,8 @@ instantgrade --solution solution.xlsx --submissions ./excel_submissions/ --outpu
 - MATLAB scripts (.m)
 
 ## Important links
-- [Documentation](https://github.com/chandraveshchaudhari/instantgrade/wiki)
-- [Quick tour](https://github.com/chandraveshchaudhari/instantgrade/blob/master/data/python_example1/basic_python_flow.ipynb)
+- [Documentation](https://chandraveshchaudhari.github.io/instantgrade/)
+- [Quick tour](https://github.com/chandraveshchaudhari/instantgrade/blob/master/data/python_example/basic_python_flow.ipynb)
 - [Project maintainer (feel free to contact)](mailto:chandraveshchaudhari@gmail.com?subject=[GitHub]%20Evaluator) 
 - [Future Improvements](https://github.com/chandraveshchaudhari/instantgrade/projects)
 - [License](https://github.com/chandraveshchaudhari/instantgrade/blob/master/LICENSE.txt)

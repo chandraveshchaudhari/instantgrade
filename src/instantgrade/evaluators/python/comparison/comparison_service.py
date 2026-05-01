@@ -107,6 +107,28 @@ class ComparisonService:
         if assertions is None:
             assertions = kwargs.get("assertions") or []
 
+        if namespace is None:
+            namespace = {}
+
+        if context_code:
+            try:
+                exec(compile(context_code, "<context>", "exec"), namespace)
+            except Exception as e:
+                return [
+                    {
+                        "question": question_name or "Unknown Question",
+                        "assertion": "[context setup]",
+                        "status": "failed",
+                        "score": 0,
+                        "error": (
+                            "Runtime error while preparing question context.\n"
+                            f"Error: {str(e)}\n\n"
+                            f"Traceback:\n{traceback.format_exc()}"
+                        ),
+                        "description": "",
+                    }
+                ]
+
         for a in assertions:
             # Support multiple assertion formats for backwards compatibility:
             # - a is a dict with keys: code, question, description

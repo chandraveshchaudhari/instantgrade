@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-05-01
+
 ### Added
-- Comprehensive documentation with Sphinx
-- GitHub Pages deployment workflow
-- API reference documentation
-- Examples and use cases
+- Streamlit UI launch workflow via `instantgrade launch`
+- Support for uploading one instructor notebook and multiple student notebooks in the UI
+- Support for uploading additional dataset and supporting files for notebook grading
+- Student notebook generation from an instructor solution notebook
+- Run history with downloadable HTML reports, PDF reports, and execution logs
+
+### Changed
+- `instantgrade launch` now falls back to the next free port when the requested port is unavailable
+- Documentation now clearly separates local mode from Docker-backed mode
+- Sphinx docs now include install, quick start, usage, examples, and API pages referenced by the site navigation
+- Package version and docs release metadata bumped to `0.1.19`
+
+### Fixed
+- Local notebook grading now executes per-question context code before assertions
+- Local notebook grading now resolves supporting dataset files from the correct working directory
+- Docker grading now copies supporting files into the container workspace
+- Docker image reuse now accounts for local source changes to avoid stale cached container code
 
 ## [0.1.0] - 2025-12-01
 
@@ -103,5 +118,6 @@ We welcome contributions! See [CONTRIBUTING.md](contributing.md) for guidelines.
 - **PyPI**: https://pypi.org/project/instantgrade/
 - **Documentation**: https://chandraveshchaudhari.github.io/instantgrade/
 
-[Unreleased]: https://github.com/chandraveshchaudhari/instantgrade/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/chandraveshchaudhari/instantgrade/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/chandraveshchaudhari/instantgrade/releases/tag/v0.1.19
 [0.1.0]: https://github.com/chandraveshchaudhari/instantgrade/releases/tag/v0.1.0

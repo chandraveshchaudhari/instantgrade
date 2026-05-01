@@ -57,6 +57,7 @@ class NotebookExecutor:
         errors: list[str] = []
         tb_text: str | None = None
         namespace: dict[str, Any] = {}
+        original_cwd = Path.cwd()
 
         # Dummy input() override to prevent blocking
         def dummy_input(prompt=None):
@@ -66,39 +67,40 @@ class NotebookExecutor:
 
         namespace["input"] = dummy_input
 
-        # Execute all cells safely using nbclient first (for reproducibility)
         try:
-            client = NotebookClient(
-                nb,
-                timeout=self.timeout,
-                allow_errors=True,
-                kernel_name="python3",
-            )
-            executed_nb = client.execute()
-        except Exception as e:
-            tb_text = traceback.format_exc()
-            errors.append(f"[nbclient failure] {str(e)}")
-            executed_nb = nb
+            os.chdir(path.parent)
 
-        # Sequential execution to rebuild namespace
-        for cell in executed_nb.cells:
-            if cell.cell_type != "code":
-                continue
-            src = cell.get("source", "")
-            if not src.strip():
-                continue
+            # Execute all cells safely using nbclient first (for reproducibility)
             try:
-                # Execute code blocks directly in-process so function
-                # definitions remain available in the returned namespace.
-                # Note: this removes per-cell timeout protection for local
-                # runs; if you need strict timeouts, consider a different
-                # execution strategy (threads or sandboxed processes).
-                code_obj = compile(src, f"<student_cell>", "exec")
-                exec(code_obj, namespace)
+                client = NotebookClient(
+                    nb,
+                    timeout=self.timeout,
+                    allow_errors=True,
+                    kernel_name="python3",
+                )
+                executed_nb = client.execute()
             except Exception as e:
-                # Capture the traceback text for reporting
-                tb = traceback.format_exc()
-                errors.append(f"In cell: {src[:80]} -> {tb}")
+                tb_text = traceback.format_exc()
+                errors.append(f"[nbclient failure] {str(e)}")
+                executed_nb = nb
+
+            # Sequential execution to rebuild namespace
+            for cell in executed_nb.cells:
+                if cell.cell_type != "code":
+                    continue
+                src = cell.get("source", "")
+                if not src.strip():
+                    continue
+                try:
+                    # Execute code blocks directly in-process so function
+                    # definitions remain available in the returned namespace.
+                    code_obj = compile(src, f"<student_cell>", "exec")
+                    exec(code_obj, namespace)
+                except Exception:
+                    tb = traceback.format_exc()
+                    errors.append(f"In cell: {src[:80]} -> {tb}")
+        finally:
+            os.chdir(original_cwd)
 
         clean_ns = {k: v for k, v in namespace.items() if not k.startswith("__")}
         return {

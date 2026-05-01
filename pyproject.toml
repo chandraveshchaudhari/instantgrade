@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "instantgrade"
-version = "0.1.18"
+version = "0.1.19"
 description = "An automated evaluation framework for Python notebooks and Excel assignments"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = "MIT"
 keywords = ["evaluation", "grading", "jupyter", "notebook", "excel", "education", "automated-grading", "assignment-evaluation", "instant", "instantgrade"]
 authors = [
   {name = "Chandravesh Chaudhari", email = "chandraveshchaudhari@gmail.com"}
@@ -24,7 +24,6 @@ classifiers = [
   "Topic :: Software Development :: Testing",
   "Topic :: Education",
   "Topic :: Software Development :: Libraries :: Python Modules",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.8",

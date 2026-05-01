@@ -29,9 +29,9 @@ InstantGrade is a powerful tool designed for educators and course administrators
 
 ### 🐍 Python Notebook Support
 - Execute and compare Jupyter notebooks
-- Cell-by-cell output comparison
-- Variable state tracking
-- Error handling and reporting
+- Run locally or inside Docker
+- Upload supporting datasets and other files alongside notebooks
+- Use instructor question context plus assertions for grading
 
 ### 📊 Excel File Support
 - Compare spreadsheet data
@@ -45,28 +45,34 @@ InstantGrade is a powerful tool designed for educators and course administrators
 - Score calculations
 - Execution logs and error tracking
 
-### 🔧 Flexible Configuration
+### 🖥️ Streamlit UI
+- Launch with `instantgrade launch`
+- Automatic fallback to the next free port when `8501` is unavailable
+- Upload one instructor notebook, many student notebooks, and extra data files
+- Generate a student-facing notebook from an instructor solution
+
+### 🔧 Flexible Workflows
 - Customizable evaluation criteria
 - Support for multiple file formats
 - Batch processing capabilities
 - CLI and Python API
+- Saved run history with downloadable HTML, PDF, and log artifacts
 
 ## Quick Example
 
 ```python
-from instantgrade import Evaluator
+from instantgrade import InstantGrader
 
-# Initialize the evaluator
-evaluator = Evaluator(
-    solution_path="solution.ipynb",
-    submissions_dir="submissions/",
-    report_dir="reports/"
+grader = InstantGrader(
+    solution_file_path="solution.ipynb",
+    submission_folder_path="submissions/",
+    use_docker=False,
 )
 
-# Run evaluation
-evaluator.run()
+report = grader.run()
+report.to_html("reports/report.html")
 
-# Results are saved in reports/ directory
+# Results are saved to an HTML report.
 ```
 
 ## Use Cases
@@ -89,52 +95,12 @@ evaluator.run()
 
 ## Get Started
 
-::::{grid} 1 2 2 3
-:gutter: 4
-
-:::{grid-item-card} 📦 Installation
-:link: installation
-:link-type: doc
-
-Get InstantGrade installed and ready to use in minutes.
-:::
-
-:::{grid-item-card} 🚀 Quick Start
-:link: quickstart
-:link-type: doc
-
-Learn the basics with a simple example.
-:::
-
-:::{grid-item-card} 📖 Usage Guide
-:link: usage
-:link-type: doc
-
-Explore all features and configuration options.
-:::
-
-:::{grid-item-card} 💡 Examples
-:link: examples
-:link-type: doc
-
-See real-world examples and use cases.
-:::
-
-:::{grid-item-card} 🔍 API Reference
-:link: api
-:link-type: doc
-
-Complete API documentation for developers.
-:::
-
-:::{grid-item-card} 🤝 Contributing
-:link: contributing
-:link-type: doc
-
-Help improve InstantGrade.
-:::
-
-::::
+- [Installation](installation.md)
+- [Quick Start](quickstart.md)
+- [Usage Guide](usage.md)
+- [Examples](examples.md)
+- [API Reference](api.md)
+- [Contributing](contributing.md)
 
 ## Community & Support
 

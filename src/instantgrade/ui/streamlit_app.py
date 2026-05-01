@@ -4,6 +4,7 @@ Run with: `streamlit run /path/to/streamlit_app.py`
 The CLI will point Streamlit to this file automatically.
 """
 from pathlib import Path
+import base64
 import tempfile
 import streamlit as st
 import streamlit.components.v1 as components
@@ -15,6 +16,8 @@ import os
 from datetime import datetime
 
 from instantgrade.core.orchestrator import InstantGrader
+import nbformat
+import ast
 
 
 st.set_page_config(page_title="InstantGrade UI", layout="centered")
@@ -25,6 +28,15 @@ RUNS_DIR = Path.home() / ".instantgrade" / "runs"
 
 def _ensure_runs_dir():
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _render_html_report(html: str, *, height: int = 800) -> None:
+    if hasattr(st, "iframe"):
+        encoded = base64.b64encode(html.encode("utf8")).decode("ascii")
+        st.iframe(f"data:text/html;base64,{encoded}", height=height)
+        return
+
+    components.html(html, height=height, scrolling=True)
 
 
 def run_and_store(solution_path: str, submissions_path: str, use_docker: bool, best_n: int | None, ui_log_lines: list):
@@ -156,6 +168,7 @@ def main():
 
         st.markdown("**Student submissions input**")
         sub_upload = st.file_uploader("Upload student notebook(s) (optional, multiple allowed)", type=["ipynb"], accept_multiple_files=True)
+        data_upload = st.file_uploader("Additional data files (CSV/JSON/etc., optional)", type=None, accept_multiple_files=True, help="Select any supporting data files required by student notebooks (e.g., .csv, .json). You can upload notebooks and data files together by multi-selecting them.")
         submissions_path = st.text_input("Or provide submissions folder/file path on server", value="", help="Path to student notebook or submissions directory")
         st.markdown(
             "**Upload options:** Use the file uploader to select multiple `.ipynb` files (Ctrl/Cmd+click) to upload a folder's contents without zipping, or paste a server path to the submissions folder. Uploading a ZIP is also supported and will be extracted."
@@ -176,32 +189,32 @@ def main():
             else:
                 solp = solution_path.strip()
 
-            # Decide submissions: uploaded files -> save to temp dir; or use provided path
-                if sub_upload and len(sub_upload) > 0:
-                    tmp_sub_dir = Path(tempfile.mkdtemp(prefix="instantgrade_subs_"))
-                    # Support uploading multiple notebooks or a single ZIP archive containing a submissions folder
-                    for f in sub_upload:
-                        outf = tmp_sub_dir / f.name
-                        with open(outf, "wb") as fh:
-                            fh.write(f.getbuffer())
-                        # if a zip was uploaded, extract it
-                        if f.name.lower().endswith('.zip'):
-                            try:
-                                import zipfile
+            # Decide submissions and data: uploaded files -> save to temp dir; or use provided path
+            if (sub_upload and len(sub_upload) > 0) or (data_upload and len(data_upload) > 0):
+                tmp_sub_dir = Path(tempfile.mkdtemp(prefix="instantgrade_subs_"))
+                # Support uploading multiple notebooks and data files, or a single ZIP archive containing a submissions folder
+                for f in (list(sub_upload) if sub_upload else []) + (list(data_upload) if data_upload else []):
+                    outf = tmp_sub_dir / f.name
+                    with open(outf, "wb") as fh:
+                        fh.write(f.getbuffer())
+                    # if a zip was uploaded, extract it
+                    if f.name.lower().endswith('.zip'):
+                        try:
+                            import zipfile
 
-                                with zipfile.ZipFile(outf, 'r') as zf:
-                                    zf.extractall(tmp_sub_dir)
-                                    # remove the zip after extraction
-                                outf.unlink()
-                            except Exception:
-                                pass
-                    # If upload produced a single folder inside tmp_sub_dir, use that
-                    # otherwise use tmp_sub_dir itself
-                    children = [p for p in tmp_sub_dir.iterdir() if p.exists()]
-                    if len(children) == 1 and children[0].is_dir():
-                        subp = str(children[0])
-                    else:
-                        subp = str(tmp_sub_dir)
+                            with zipfile.ZipFile(outf, 'r') as zf:
+                                zf.extractall(tmp_sub_dir)
+                            # remove the zip after extraction
+                            outf.unlink()
+                        except Exception:
+                            pass
+                # If upload produced a single folder inside tmp_sub_dir, use that
+                # otherwise use tmp_sub_dir itself
+                children = [p for p in tmp_sub_dir.iterdir() if p.exists()]
+                if len(children) == 1 and children[0].is_dir():
+                    subp = str(children[0])
+                else:
+                    subp = str(tmp_sub_dir)
             else:
                 subp = submissions_path.strip()
 
@@ -248,7 +261,7 @@ def main():
             st.success("Grading finished.")
             if out_html and Path(out_html).exists():
                 html = Path(out_html).read_text(encoding="utf8")
-                components.html(html, height=800, scrolling=True)
+                _render_html_report(html, height=800)
                 with open(out_html, "rb") as fh:
                     st.download_button("Download report HTML", fh, file_name=f"instantgrade_report_{res['run_dir'].split(os.sep)[-1]}.html")
 
@@ -283,7 +296,7 @@ def main():
         if htmlp and Path(htmlp).exists():
             if st.button("Open selected run HTML"):
                 html = Path(htmlp).read_text(encoding='utf8')
-                components.html(html, height=800, scrolling=True)
+                _render_html_report(html, height=800)
         if pdfp and Path(pdfp).exists():
             with open(pdfp, 'rb') as pf:
                 st.download_button("Download selected run PDF", pf, file_name=Path(pdfp).name)
@@ -291,7 +304,86 @@ def main():
             with open(logp, 'rb') as lf:
                 st.download_button("Download selected run log", lf, file_name=Path(logp).name)
         
+    # --- Generate student notebook from instructor solution ---
+    st.markdown("---")
+    st.header("Generate student notebook")
+    st.markdown("Provide an instructor solution (`.ipynb`) to generate a student-facing notebook (stubs, no asserts).")
+    gen_sol_upload = st.file_uploader("Upload instructor .ipynb for generation", type=["ipynb"], accept_multiple_files=False, key="gen_sol")
+    gen_solution_path = st.text_input("Or provide solution path on server (for generation)", value="", help="Path to instructor solution notebook for generating student copy")
+    if st.button("Generate student notebook"):
+        try:
+            # load notebook
+            if gen_sol_upload is not None:
+                raw = gen_sol_upload.getbuffer().tobytes()
+                nb = nbformat.reads(raw.decode('utf8'), as_version=4)
+            else:
+                gp = gen_solution_path.strip()
+                if not gp:
+                    st.error("Please upload or provide a solution path to generate from.")
+                else:
+                    nb = nbformat.read(gp, as_version=4)
 
+            # transform notebook: replace function bodies with pass and remove assert lines
+            new_nb = nbformat.v4.new_notebook()
+            new_cells = []
+            i = 0
+            # ensure there is a name/roll cell at top
+            pasted_name = False
+            while i < len(nb.cells):
+                cell = nb.cells[i]
+                if cell.cell_type == 'code' and 'name' in cell.source and 'roll_number' in cell.source and not pasted_name:
+                    # replace with student placeholders
+                    new_cells.append(nbformat.v4.new_code_cell("name = ''\nroll_number = ''"))
+                    pasted_name = True
+                    i += 1
+                    continue
 
+                if cell.cell_type == 'markdown' and cell.source.strip().startswith('##'):
+                    # keep question markdown
+                    new_cells.append(nbformat.v4.new_markdown_cell(cell.source))
+                    # next should be function def
+                    if i + 1 < len(nb.cells) and nb.cells[i+1].cell_type == 'code':
+                        func_src = nb.cells[i+1].source
+                        try:
+                            tree = ast.parse(func_src)
+                            func_node = None
+                            for n in tree.body:
+                                if isinstance(n, ast.FunctionDef):
+                                    func_node = n
+                                    break
+                            if func_node is not None:
+                                func_node.body = [ast.Pass()]
+                                new_src = ast.unparse(func_node)
+                                new_cells.append(nbformat.v4.new_code_cell(new_src))
+                            else:
+                                # just add empty code cell
+                                new_cells.append(nbformat.v4.new_code_cell('# implement function here'))
+                        except Exception:
+                            new_cells.append(nbformat.v4.new_code_cell('# implement function here'))
+                        # skip the next test/context cell if present
+                        i += 3
+                        continue
+
+                # default: copy non-test cells that are not assertions
+                if cell.cell_type == 'code':
+                    # remove asserts from code cells
+                    lines = []
+                    for ln in cell.source.splitlines():
+                        if ln.strip().startswith('assert '):
+                            continue
+                        lines.append(ln)
+                    new_cells.append(nbformat.v4.new_code_cell('\n'.join(lines)))
+                else:
+                    new_cells.append(nbformat.v4.new_markdown_cell(cell.source))
+
+                i += 1
+
+            new_nb['cells'] = new_cells
+
+            out_bytes = nbformat.writes(new_nb).encode('utf8')
+            st.download_button('Download generated student notebook', out_bytes, file_name='student_copy.ipynb')
+
+        except Exception as e:
+            st.exception(e)
 if __name__ == "__main__":
     main()
